@@ -22,6 +22,18 @@ async function viewEmiFinal(i){
   window.openBox('EMI / Repayment — Full EMI List',`<p><b>Customer:</b> ${escF(customer.full_name||'-')} &nbsp; <b>Mobile:</b> ${escF(customer.mobile||'-')} &nbsp; <b>Loan ID:</b> ${escF(loanId)}</p><div class="wrap"><table style="min-width:1100px"><thead><tr><th>EMI No.</th><th>Due Date</th><th>EMI Amount</th><th>Penalty</th><th>Total Due</th><th>Paid</th><th>Remaining</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows||'<tr><td colspan="9">No EMI schedule found.</td></tr>'}</tbody></table></div><p><b>Total EMI:</b> ${list.length} &nbsp; <b>Paid:</b> ${pc} &nbsp; <b>Pending:</b> ${pending} &nbsp; <b>Overdue:</b> ${overdue} &nbsp; <b>Total Paid:</b> ${moneyF(paid)} &nbsp; <b>Remaining:</b> ${moneyF(remaining)} &nbsp; <b>Penalty:</b> ${moneyF(penalty)} &nbsp; <b>Total Due:</b> ${moneyF(total)}</p>`);
  }catch(e){console.error(e);alert('EMI list load failed: '+(e?.message||e));}
 }
-window.emiFinalPaid=async function(id){try{const sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);const q=await sb.from('loan_emi_schedule').select('*').eq('id',id).single();if(q.error)throw q.error;const e=q.data,total=Number(e.emi_amount||0)+Number(e.penalty||0);const u=await sb.from('loan_emi_schedule').update({total_due:total,paid_amount:total,remaining_amount:0,status:'paid'}).eq('id',id);if(u.error)throw u.error;window.closeM();if(window.loadData)await window.loadData();alert('EMI marked as Paid successfully.');}catch(e){console.error(e);alert('EMI Payment error: '+(e?.message||e));}};
+window.emiFinalPaid=async function(id){
+ try{
+  const sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+  const q=await sb.from('loan_emi_schedule').select('id,emi_amount,penalty,paid_amount,status').eq('id',id).single();
+  if(q.error)throw q.error;
+  const e=q.data,total=Number(e.emi_amount||0)+Number(e.penalty||0);
+  const u=await sb.from('loan_emi_schedule').update({paid_amount:total,status:'paid'}).eq('id',id);
+  if(u.error)throw u.error;
+  window.closeM();
+  if(window.loadData)await window.loadData();
+  alert('EMI marked as Paid successfully.');
+ }catch(e){console.error(e);alert('EMI Payment error: '+(e?.message||e));}
+};
 window.viewEmi=viewEmiFinal;
 })();
