@@ -16,6 +16,9 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
     setTimeout(function(){add('admin-final-fix.js?v=20260822-4-final');},6000);
     setTimeout(function(){add('admin-customer-fix.js?v=20260822-2');},7000);
     setTimeout(function(){add('admin-staff-fix.js?v=20260822-1');},8000);
-    setTimeout(function(){if(window.hfyMasterBoot)window.alert=oldAlert;},10000);
+    // Final workflow override: Customer -> Application -> Approval -> Customer + EMI.
+    // This file does not modify the existing EMI UI/actions.
+    setTimeout(function(){add('admin-flow-fix.js?v=20260822-1');},9000);
+    setTimeout(function(){if(window.hfyMasterBoot)window.alert=oldAlert;},11000);
   }
 })();
