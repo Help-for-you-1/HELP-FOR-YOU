@@ -15,7 +15,7 @@ if (location.pathname.endsWith('/admin.html') || location.pathname.endsWith('adm
   hfyAdminEnhance.defer = true;
   document.head.appendChild(hfyAdminEnhance);
   var hfyEmiViewFix = document.createElement('script');
-  hfyEmiViewFix.src = 'emi-view-fix.js?v=3';
+  hfyEmiViewFix.src = 'emi-view-fix.js?v=4';
   hfyEmiViewFix.defer = true;
   document.head.appendChild(hfyEmiViewFix);
 }
