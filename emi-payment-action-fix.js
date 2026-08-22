@@ -8,7 +8,7 @@ window.emi30Paid=async function(id){
   if(q.error) throw q.error;
   const e=q.data;
   const total=Number(e.emi_amount||0)+Number(e.penalty||0);
-  const u=await sb.from('loan_emi_schedule').update({paid_amount:total,remaining_amount:0,total_due:total,status:'paid'}).eq('id',id);
+  const u=await sb.from('loan_emi_schedule').update({paid_amount:total,remaining_amount:0,status:'paid'}).eq('id',id);
   if(u.error) throw u.error;
   if(typeof window.closeM==='function') window.closeM();
   if(typeof window.loadData==='function') await window.loadData();
