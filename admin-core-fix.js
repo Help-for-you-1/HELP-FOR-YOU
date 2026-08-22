@@ -1,4 +1,10 @@
 (()=>{
 'use strict';
 window.saveCustomerEdit=async function(i){try{const g=id=>document.getElementById(id);const list=await window.supabase.createClient(HFY_SUPABASE_URL,HFY_SUPABASE_PUBLISHABLE_KEY).from('customers').select('id').order('created_at',{ascending:false});if(list.error)throw list.error;const row=list.data?.[i];if(!row)return alert('Customer not found.');const p={full_name:g('en').value.trim(),mobile:g('em').value.trim(),email:g('ee').value||null,date_of_birth:g('ed').value||null,occupation:g('eo').value||null,monthly_income:Number(g('ei').value||0)||null,address:g('ex').value||null,district:g('edi').value||null,state:g('es').value||null,pincode:g('ep').value||null,pan_number:g('epan').value||null,aadhaar_number:g('eaa').value||null,updated_at:new Date().toISOString()};if(!p.full_name||!p.mobile)return alert('Name and Mobile are required.');const r=await window.supabase.createClient(HFY_SUPABASE_URL,HFY_SUPABASE_PUBLISHABLE_KEY).from('customers').update(p).eq('id',row.id);if(r.error)throw r.error;closeM();loadData();alert('Customer updated.')}catch(e){console.error(e);alert('Customer update error: '+(e?.message||e))}};
+
+// EMI / Repayment View only: load the existing full-list EMI fix after the core runtime.
+const s=document.createElement('script');
+s.src='emi-view-fix.js';
+s.onload=()=>{ if(window.viewRepayFix) window.viewEmi=window.viewRepayFix; };
+document.head.appendChild(s);
 })();
