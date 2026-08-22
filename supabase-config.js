@@ -32,6 +32,13 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
     f.defer=true;
     document.head.appendChild(f);
 
+    // Run the targeted fix once more after the other Admin scripts have loaded.
+    setTimeout(function(){
+      var f2=document.createElement('script');
+      f2.src='admin-final-fix.js?v=20260822-3-late';
+      document.head.appendChild(f2);
+    },1500);
+
     setTimeout(function(){ if(window.hfyMasterBoot) window.alert=oldAlert; },5000);
   }
 })();
