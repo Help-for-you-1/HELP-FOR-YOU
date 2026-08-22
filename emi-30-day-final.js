@@ -9,8 +9,9 @@ async function ensure30(loan){
  const sb=db30();
  const q=await sb.from('loan_emi_schedule').select('*').eq('loan_account_id',loan.id).order('emi_number',{ascending:true});
  if(q.error)throw q.error;let rows=q.data||[];const needed=Math.max(1,Number(loan.tenure_months||1)*30);if(rows.length>=needed)return rows;
- const start=String(loan.start_date||day30()).slice(0,10),total=Number(loan.total_repayment||0),amount=Number(loan.daily_emi||0)>0?Number(loan.daily_emi):total/needed,existing=new Set(rows.map(x=>Number(x.emi_number))),add=[];
- for(let n=1;n<=needed;n++)if(!existing.has(n))add.push({loan_account_id:loan.id,loan_id:loan.loan_id,customer_id:loan.customer_id,emi_number:n,due_date:add30(start,n),emi_amount:amount,penalty:0,paid_amount:0,status:'pending'});
+ const start=String(loan.start_date||day30()).slice(0,10),total=Number(loan.total_repayment||0),base=Number(loan.daily_emi||0)>0?Number(loan.daily_emi):total/needed,existing=new Set(rows.map(x=>Number(x.emi_number))),add=[];
+ let allocated=rows.reduce((s,x)=>s+Number(x.emi_amount||0),0);
+ for(let n=1;n<=needed;n++)if(!existing.has(n)){let amount=n===needed?Math.max(0,total-allocated):Number(base.toFixed(2));allocated+=amount;add.push({loan_account_id:loan.id,loan_id:loan.loan_id,customer_id:loan.customer_id,emi_number:n,due_date:add30(start,n),emi_amount:amount,penalty:0,total_due:amount,paid_amount:0,remaining_amount:amount,status:'upcoming'});}
  if(add.length){const ins=await sb.from('loan_emi_schedule').insert(add);if(ins.error)throw ins.error;}
  const r=await sb.from('loan_emi_schedule').select('*').eq('loan_account_id',loan.id).order('emi_number',{ascending:true});if(r.error)throw r.error;return r.data||[];
 }
