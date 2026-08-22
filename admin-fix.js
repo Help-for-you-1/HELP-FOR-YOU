@@ -1,50 +1,36 @@
-/* HELP FOR YOU - admin runtime fix
-   Keeps existing UI and Supabase configuration unchanged.
-   Repairs admin navigation/actions and Approval row indexing.
+/* HELP FOR YOU - Admin runtime fix
+   Keeps the existing admin.html design and Supabase configuration.
+   Makes navigation and data loading work even if the Supabase CDN is slow.
 */
 (function(){
-  'use strict';
-
-  function pendingIndexes(){
-    var apps=window.db && Array.isArray(window.db.applications)?window.db.applications:[];
-    var out=[];
-    apps.forEach(function(x,i){
-      var s=String(x.status||'').toLowerCase();
-      if(['approved','rejected','disbursed'].indexOf(s)===-1) out.push(i);
-    });
-    return out;
-  }
-
-  function repair(){
-    try{
-      if(typeof db!=='undefined' && !window.db) window.db=db;
-    }catch(e){}
-
-    var rows=document.querySelectorAll('#apRows tr');
-    var pending=pendingIndexes();
-    rows.forEach(function(row,n){
-      var btn=row.querySelector('button');
-      if(btn && pending[n]!==undefined){
-        btn.onclick=function(){
-          if(typeof window.editApproval==='function') window.editApproval(pending[n]);
-        };
-      }
-    });
-  }
-
-  document.addEventListener('click',function(ev){
-    var el=ev.target.closest ? ev.target.closest('.m') : null;
-    if(!el) return;
-    var attr=el.getAttribute('onclick')||'';
-    var m=attr.match(/^show\(['\"]([^'\"]+)['\"],this\)$/);
-    if(m && typeof window.show==='function'){
-      ev.preventDefault();
-      window.show(m[1],el);
-    }
-  },true);
-
-  var timer=setInterval(repair,300);
-  document.addEventListener('DOMContentLoaded',repair);
-  window.addEventListener('load',repair);
-  window.addEventListener('beforeunload',function(){clearInterval(timer);});
+'use strict';
+function byId(id){return document.getElementById(id);}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function money(v){return Number(v||0).toFixed(2);}
+window.show=function(id,b){document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('on');});var p=byId(id);if(p)p.classList.add('on');document.querySelectorAll('.m').forEach(function(x){x.classList.remove('on');});if(b)b.classList.add('on');};
+window.openBox=function(t,h){if(byId('mt'))byId('mt').textContent=t;if(byId('mb'))byId('mb').innerHTML=h;if(byId('modal'))byId('modal').classList.add('on');};
+window.closeM=function(){if(byId('modal'))byId('modal').classList.remove('on');};
+window.db=window.db||{applications:[],customers:[],emis:[]};
+function render(){var d=window.db;var nA=byId('nA'),nP=byId('nP'),nC=byId('nC'),nL=byId('nL'),nD=byId('nD'),rd=byId('reportDue');if(nA)nA.textContent=d.applications.length;if(nP)nP.textContent=d.applications.filter(function(x){return !['approved','rejected','disbursed'].includes(String(x.status||'').toLowerCase());}).length;if(nC)nC.textContent=d.customers.length;if(nL)nL.textContent=d.customers.length;
+var apps=byId('appsRows');if(apps)apps.innerHTML=d.applications.map(function(x,i){return '<tr><td>'+esc(x.name)+'</td><td>'+esc(x.mobile)+'</td><td>'+esc(x.date)+'</td><td>₹'+money(x.amount)+'</td><td>'+esc(x.status||'pending')+'</td><td><button class="btn gray" onclick="viewApp('+i+')">View</button></td></tr>';}).join('')||'<tr><td colspan="6">No applications.</td></tr>';
+var pending=[];d.applications.forEach(function(x,i){if(!['approved','rejected','disbursed'].includes(String(x.status||'').toLowerCase()))pending.push(i);});var ap=byId('apRows');if(ap)ap.innerHTML=pending.map(function(i){var x=d.applications[i];return '<tr><td>'+esc(x.name)+'</td><td>'+esc(x.mobile)+'</td><td>'+esc(x.date)+'</td><td>₹'+money(x.amount)+'</td><td class="pending">Pending for Approval</td><td><button class="btn blue" onclick="editApproval('+i+')">Edit</button></td></tr>';}).join('')||'<tr><td colspan="6">No pending approval.</td></tr>';
+var q=((byId('search')||{}).value||'').toLowerCase(),cu=byId('cuRows');if(cu)cu.innerHTML=d.customers.filter(function(x){return JSON.stringify(x).toLowerCase().includes(q);}).map(function(x,i){return '<tr><td>'+esc(x.name)+'</td><td>'+esc(x.mobile)+'</td><td>'+esc(x.loanId)+'</td><td>₹'+money(x.amount)+'</td><td>'+esc(x.sanction)+'</td><td><button class="btn blue" onclick="editCustomer('+i+')">View / Edit</button></td></tr>';}).join('')||'<tr><td colspan="6">No approved customers.</td></tr>';
+var rr=byId('reRows');if(rr)rr.innerHTML=d.customers.map(function(x,i){return '<tr><td>'+esc(x.name)+'</td><td>'+esc(x.mobile)+'</td><td>'+esc(x.loanId)+'</td><td>₹'+money(x.amount)+'</td><td>20% / month</td><td>'+esc(x.sanction)+'</td><td>₹'+money(x.emi)+'</td><td>₹'+money(x.overdue)+'</td><td>₹'+money(x.totalDue)+'</td><td><button class="btn blue" onclick="viewRepay('+i+')">View</button></td></tr>';}).join('')||'<tr><td colspan="10">No approved customers.</td></tr>';
+var due=d.customers.reduce(function(s,x){return s+Number(x.totalDue||0);},0);if(nD)nD.textContent='₹'+money(due);if(rd)rd.textContent='₹'+money(due);
+var ov=byId('ovRows'),today=new Date();today.setHours(0,0,0,0);if(ov)ov.innerHTML=d.emis.filter(function(e){return String(e.status||'').toLowerCase()!=='paid'&&e.due&&new Date(e.due+'T00:00:00')<today;}).map(function(e){return '<tr><td>'+esc(e.loanId)+'</td><td>'+esc(e.customer)+'</td><td>₹'+money(e.amount)+'</td><td>'+e.days+'</td><td>₹'+money(e.penalty)+'</td><td>₹'+money(Number(e.amount)+Number(e.penalty)-Number(e.paid))+'</td><td><button class="btn green" onclick="pay(\''+esc(e.id)+'\')">Paid</button></td></tr>';}).join('')||'<tr><td colspan="7">No overdue EMI.</td></tr>';}
+window.render=render;
+function getClient(){if(window.supabase&&window.HFY_SUPABASE_URL&&window.HFY_SUPABASE_PUBLISHABLE_KEY){try{return window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);}catch(e){console.error(e);}}return null;}
+async function load(){var sb=getClient();if(!sb){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';document.head.appendChild(s);await new Promise(function(resolve){var n=0,t=setInterval(function(){if(getClient()||n++>100){clearInterval(t);resolve();}},100);});sb=getClient();}if(!sb){alert('Supabase library load failed. Please refresh the page.');return;}window.HFY_ADMIN_SB=sb;try{var r=await Promise.all([sb.from('loan_applications').select('*').order('created_at',{ascending:false}),sb.from('customers').select('*'),sb.from('loan_accounts').select('*').order('created_at',{ascending:false}),sb.from('loan_emi_schedule').select('*').order('due_date',{ascending:true})]);r.forEach(function(x){if(x.error)throw x.error;});var cm=new Map((r[1].data||[]).map(function(c){return [c.id,c];}));window.db.applications=(r[0].data||[]).map(function(x){return Object.assign({},x,{name:x.name||x.full_name||'',amount:Number(x.requested_amount!=null?x.requested_amount:(x.loan_amount||0)),date:x.created_at?x.created_at.slice(0,10):'',kyc:x.kyc_status||''});});window.db.emis=(r[3].data||[]).map(function(e){var due=e.due_date;var days=due?Math.max(0,Math.floor((new Date().setHours(0,0,0,0)-new Date(due+'T00:00:00'))/86400000)):0;return{id:e.id,loanId:String(e.loan_id||''),customer:(cm.get(e.customer_id)||{}).full_name||'',no:e.emi_number,due:due,amount:Number(e.emi_amount||0),days:days,penalty:Number(e.penalty||0),paid:Number(e.paid_amount||0),status:e.status||'pending'};});window.db.customers=(r[2].data||[]).map(function(l){var c=cm.get(l.customer_id)||{},es=window.db.emis.filter(function(e){return String(e.loanId)===String(l.loan_id);});return{id:c.id,name:c.full_name||'',mobile:c.mobile||'',loanId:String(l.loan_id),amount:Number(l.loan_amount||0),months:Number(l.tenure_months||0),interest:Number(l.loan_amount||0)*.2*Number(l.tenure_months||0),totalLoan:Number(l.total_repayment||0),emi:Number(l.daily_emi||0)*30,overdue:es.reduce(function(s,e){return s+e.penalty;},0),totalDue:es.length?es.reduce(function(s,e){return s+Math.max(0,e.amount+e.penalty-e.paid);},0):Number(l.remaining_amount||0),sanction:l.start_date||'',address:c.address||'',customerId:c.id,accountId:l.id,email:c.email||'',pan:c.pan_number||'',aadhaar:c.aadhaar_number||'',state:c.state||'',district:c.district||'',pincode:c.pincode||''};});render();}catch(e){console.error(e);alert('Admin data load error: '+(e.message||e));}}
+window.viewApp=function(i){var x=window.db.applications[i];if(!x)return;openBox('Application Details','<p><b>Name:</b> '+esc(x.name)+'</p><p><b>Mobile:</b> '+esc(x.mobile)+'</p><p><b>Apply Date:</b> '+esc(x.date)+'</p><p><b>Loan Amount:</b> ₹'+money(x.amount)+'</p><p><b>Status:</b> '+esc(x.status||'pending')+'</p><p><b>KYC:</b> '+esc(x.kyc||'Pending')+'</p>');};
+window.editApproval=function(i){var x=window.db.applications[i];if(!x)return;openBox('Application Approval','<div class="form"><label>Name<input id="fxn" value="'+esc(x.name)+'"></label><label>Mobile<input id="fxm" value="'+esc(x.mobile)+'"></label><label>Loan Amount<input id="fxa" type="number" value="'+Number(x.amount||0)+'"></label><label>Status<select id="fxs"><option value="approved">Approve</option><option value="rejected">Reject</option></select></label><div class="full"><button class="btn blue" onclick="saveAdminApplication('+i+')">Save</button></div></div>');};
+window.saveAdminApplication=async function(i){var x=window.db.applications[i],sb=window.HFY_ADMIN_SB;if(!x||!sb)return;var status=byId('fxs').value;var r=await sb.from('loan_applications').update({name:byId('fxn').value,full_name:byId('fxn').value,mobile:byId('fxm').value,requested_amount:Number(byId('fxa').value||0),status:status,updated_at:new Date().toISOString()}).eq('id',x.id);if(r.error)return alert(r.error.message);closeM();await load();alert('Application updated successfully.');};
+window.addCustomer=function(){openBox('Add Customer','<div class="form"><label>Full Name<input id="acn"></label><label>Mobile<input id="acm"></label><label>Email<input id="ace"></label><label class="full">Address<input id="aca"></label><div class="full"><button class="btn green" onclick="saveAdminCustomer()">Save Customer</button></div></div>');};
+window.saveAdminCustomer=async function(){var sb=window.HFY_ADMIN_SB;if(!sb)return;var n=byId('acn').value,m=byId('acm').value;if(!n||!m)return alert('Name and Mobile are required');var r=await sb.from('customers').insert({full_name:n,mobile:m,email:byId('ace').value||null,address:byId('aca').value||null,status:'active'});if(r.error)return alert(r.error.message);closeM();await load();alert('Customer added successfully.');};
+window.editCustomer=function(i){var x=window.db.customers[i];if(!x)return;openBox('Customer Details','<p><b>Name:</b> '+esc(x.name)+'</p><p><b>Mobile:</b> '+esc(x.mobile)+'</p><p><b>Loan ID:</b> '+esc(x.loanId)+'</p><p><b>Approved Amount:</b> ₹'+money(x.amount)+'</p><p><b>Total Due:</b> ₹'+money(x.totalDue)+'</p>');};
+window.viewRepay=function(i){var x=window.db.customers[i];if(!x)return;var es=window.db.emis.filter(function(e){return String(e.loanId)===String(x.loanId);});openBox('EMI Schedule — '+esc(x.loanId),'<p><b>'+esc(x.name)+'</b> | Daily EMI ₹'+money(x.emi/30)+'</p><div class="wrap"><table><tr><th>EMI</th><th>Due Date</th><th>Amount</th><th>Status</th><th>Action</th></tr>'+es.map(function(e){return '<tr><td>'+e.no+'</td><td>'+esc(e.due)+'</td><td>₹'+money(e.amount)+'</td><td>'+esc(e.status)+'</td><td>'+(String(e.status).toLowerCase()==='paid'?'Paid':'<button class="btn green" onclick="pay(\''+esc(e.id)+'\')">Paid</button>')+'</td></tr>';}).join('')+'</table></div>');};
+window.pay=async function(id){var e=window.db.emis.find(function(x){return String(x.id)===String(id);}),sb=window.HFY_ADMIN_SB;if(!e||!sb)return;if(String(e.status).toLowerCase()==='paid')return alert('This EMI is already paid.');var r=await sb.from('loan_emi_schedule').update({paid_amount:Number(e.amount)+Number(e.penalty),remaining_amount:0,status:'paid'}).eq('id',id);if(r.error)return alert(r.error.message);await load();closeM();alert('EMI marked as Paid successfully.');};
+window.addEmi=function(){openBox('Add EMI','<div class="form"><label>Loan ID<input id="fli"></label><label>Due Date<input id="fld" type="date"></label><label>Amount<input id="fla" type="number" step="0.01"></label><div class="full"><button class="btn blue" onclick="saveAdminEmi()">Save EMI</button></div></div>');};
+window.saveAdminEmi=async function(){var sb=window.HFY_ADMIN_SB;if(!sb)return;var lid=byId('fli').value,a=Number(byId('fla').value||0),date=byId('fld').value;if(!lid||!a||!date)return alert('Loan ID, Due Date and Amount are required.');var r=await sb.from('loan_accounts').select('id,loan_id,customer_id').eq('loan_id',lid).maybeSingle();if(r.error||!r.data)return alert(r.error?r.error.message:'Loan ID not found');var count=window.db.emis.filter(function(e){return String(e.loanId)===String(lid);}).length;r=await sb.from('loan_emi_schedule').insert({loan_account_id:r.data.id,loan_id:r.data.loan_id,customer_id:r.data.customer_id,emi_number:count+1,due_date:date,emi_amount:a,penalty:0,total_due:a,paid_amount:0,remaining_amount:a,status:'pending'});if(r.error)return alert(r.error.message);closeM();await load();};
+function boot(){document.querySelectorAll('.m').forEach(function(el){el.addEventListener('click',function(ev){var oc=el.getAttribute('onclick')||'';var m=oc.match(/show\(['"]([^'"]+)['"],this\)/);if(m){ev.preventDefault();window.show(m[1],el);}});});if(byId('search'))byId('search').addEventListener('input',render);load();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();
