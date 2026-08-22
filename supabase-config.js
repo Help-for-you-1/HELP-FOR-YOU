@@ -43,9 +43,7 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
       const row={customer_code:code,full_name:name,mobile,email:document.getElementById('acEmail').value.trim()||null,date_of_birth:document.getElementById('acDob').value||null,gender:document.getElementById('acGender').value||null,occupation:document.getElementById('acOccupation').value.trim()||null,monthly_income:document.getElementById('acIncome').value?Number(document.getElementById('acIncome').value):null,pan_number:document.getElementById('acPan').value.trim().toUpperCase()||null,aadhaar_number:document.getElementById('acAadhaar').value.trim()||null,state:document.getElementById('acState').value.trim()||null,district:document.getElementById('acDistrict').value.trim()||null,pincode:document.getElementById('acPincode').value.trim()||null,address:document.getElementById('acAddress').value.trim()||null,kyc_status:'Pending',status:'active',account_status:'active'};
       const {data,error}=await client.from('customers').insert(row).select('*').single();
       if(error){console.error('Add customer failed',error);alert('Customer save failed: '+error.message);if(btnSave){btnSave.disabled=false;btnSave.textContent='Save Customer';}return;}
-      // An admin-created customer is also a loan application. It starts in submitted status
-      // so it appears in both All Applications and Approval until the admin approves/rejects it.
-      const app={customer_id:data.id,full_name:name,name,mobile,email:row.email,address:row.address,date_of_birth:row.date_of_birth,gender:row.gender,occupation:row.occupation,monthly_income:row.monthly_income,pan_number:row.pan_number,aadhaar_number:row.aadhaar_number,status:'submitted',kyc_status:'Pending',requested_amount:null,updated_at:new Date().toISOString()};
+      const app={customer_id:data.id,full_name:name,name,mobile,email:row.email,address:row.address,date_of_birth:row.date_of_birth,gender:row.gender,occupation:row.occupation,monthly_income:row.monthly_income,pan_number:row.pan_number,aadhaar_number:row.aadhaar_number,status:'submitted',kyc_status:'Pending',requested_amount:0,updated_at:new Date().toISOString()};
       const {error:appError}=await client.from('loan_applications').insert(app);
       if(appError){console.error('Application creation failed',appError);alert('Customer saved, but application creation failed: '+appError.message);if(typeof loadData==='function')await loadData();closeM();return;}
       if(typeof loadData==='function')await loadData();
@@ -55,4 +53,83 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootAddCustomer);else setTimeout(bootAddCustomer,250);
 })();
-// Approval panel intentionally shows every application that is not yet finally rejected/approved/disbursed.
+
+// Robust approval override: keeps the existing Admin design, but fixes field mapping,
+// customer linking, numeric Loan ID generation, loan account creation and EMI schedule.
+(function () {
+  function installApprovalFix() {
+    if (!location.pathname.toLowerCase().endsWith('/admin.html')) return;
+    if (typeof window.approve !== 'function') { setTimeout(installApprovalFix,300); return; }
+    window.approve = async function(i) {
+      const x = window.db?.applications?.[i];
+      if (!x) { alert('Application not found. Please refresh Admin.'); return; }
+      const value = id => document.getElementById(id)?.value ?? '';
+      const name = value('en').trim() || x.name || x.full_name || '';
+      const mobile = value('em').trim() || x.mobile || '';
+      const amount = Number(value('ea') || x.approved_amount || x.requested_amount || x.loan_amount || 0);
+      const kyc = value('ek') || x.kyc_status || 'Pending';
+      const address = value('ead') || x.address || '';
+      const applyDate = value('edate') || x.date || new Date().toISOString().slice(0,10);
+      const email = value('ee').trim() || x.email || null;
+      const pan = value('epan').trim().toUpperCase() || x.pan_number || null;
+      const aadhaar = value('eaad').trim() || x.aadhaar_number || null;
+      const months = Number(x.tenure_months || x.tenure || (amount <= 5000 ? 1 : amount <= 10000 ? 2 : amount <= 20000 ? 3 : 0));
+      if (!amount || amount < 1000 || amount > 20000 || !months) { alert('Loan amount must be ₹1,000 to ₹20,000.'); return; }
+      const interestRate = Number(x.interest_rate || 20);
+      const totalRepayment = Number(x.total_repayment || (amount + amount * interestRate / 100 * months));
+      const dailyEmi = totalRepayment / (months * 30);
+      try {
+        const applicationUpdate = {
+          full_name:name,name,mobile,email,address,pan_number:pan,aadhaar_number:aadhaar,
+          requested_amount:Number(x.requested_amount || amount),approved_amount:amount,loan_amount:amount,
+          interest_rate:interestRate,tenure:months,tenure_months:months,emi_amount:totalRepayment / months,
+          daily_emi:dailyEmi,total_interest:totalRepayment-amount,total_repayment:totalRepayment,
+          kyc_status:kyc,status:'approved',updated_at:new Date().toISOString()
+        };
+        let r = await client.from('loan_applications').update(applicationUpdate).eq('id',x.id);
+        if (r.error) throw r.error;
+
+        let customerId = x.customer_id || null;
+        if (customerId) {
+          r = await client.from('customers').update({full_name:name,mobile,email,address,pan_number:pan,aadhaar_number:aadhaar,kyc_status:kyc,updated_at:new Date().toISOString()}).eq('id',customerId);
+          if (r.error) throw r.error;
+        } else {
+          const existing = await client.from('customers').select('id').eq('mobile',mobile).maybeSingle();
+          if (existing.error) throw existing.error;
+          if (existing.data) customerId=existing.data.id;
+          else {
+            const created=await client.from('customers').insert({full_name:name,mobile,email,address,pan_number:pan,aadhaar_number:aadhaar,kyc_status:kyc,status:'active',account_status:'active'}).select('id').single();
+            if (created.error) throw created.error;
+            customerId=created.data.id;
+          }
+          r=await client.from('loan_applications').update({customer_id:customerId}).eq('id',x.id);
+          if(r.error)throw r.error;
+        }
+
+        const maxR=await client.from('loan_accounts').select('loan_id').not('loan_id','is',null).order('loan_id',{ascending:false}).limit(1);
+        if(maxR.error)throw maxR.error;
+        const nextLoanId=(maxR.data?.length ? Number(maxR.data[0].loan_id) : 100000)+1;
+        const start=applyDate || new Date().toISOString().slice(0,10);
+        const endDate=new Date(start+'T00:00:00');
+        endDate.setDate(endDate.getDate()+months*30);
+        const account={loan_id:nextLoanId,customer_id:customerId,loan_amount:amount,total_repayment:totalRepayment,tenure_months:months,daily_emi:dailyEmi,total_paid:0,remaining_amount:totalRepayment,missed_days:0,penalty_amount:0,loan_status:'active',start_date:start,end_date:endDate.toISOString().slice(0,10),application_id:x.id};
+        const acc=await client.from('loan_accounts').insert(account).select('id').single();
+        if(acc.error)throw acc.error;
+        const rows=[];
+        for(let n=1;n<=months*30;n++){
+          const d=new Date(start+'T00:00:00');d.setDate(d.getDate()+n);
+          rows.push({loan_account_id:acc.data.id,loan_id:nextLoanId,customer_id:customerId,emi_number:n,due_date:d.toISOString().slice(0,10),emi_amount:dailyEmi,penalty:0,total_due:dailyEmi,paid_amount:0,remaining_amount:dailyEmi,status:'pending'});
+        }
+        const emi=await client.from('loan_emi_schedule').insert(rows);
+        if(emi.error)throw emi.error;
+        if(typeof loadData==='function')await loadData();
+        if(typeof closeM==='function')closeM();
+        alert('Approved successfully. Loan ID: '+nextLoanId);
+      } catch(e) {
+        console.error('Approval failed',e);
+        alert('Approval failed: '+(e.message||e));
+      }
+    };
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(installApprovalFix,1200));else setTimeout(installApprovalFix,1200);
+})();
