@@ -10,28 +10,21 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
       if(typeof msg==='string' && msg.indexOf('Supabase connection/data load error:')===0) return;
       return oldAlert.apply(window,arguments);
     };
-
-    function add(src){
-      var s=document.createElement('script');
-      s.src=src;
-      s.async=false;
-      document.head.appendChild(s);
-    }
-
+    function add(src){var s=document.createElement('script');s.src=src;s.async=false;document.head.appendChild(s);}
     add('admin-master.js?v=20260822-2');
     add('admin-approval-fix.js?v=20260822-2');
     add('emi-view-fix.js?v=20260822-2');
     add('admin-final-fix.js?v=20260822-3');
-
     setTimeout(function(){
       add('admin-final-fix.js?v=20260822-3-late');
       add('emi-action-fix.js?v=20260822-1');
     },1500);
-
     setTimeout(function(){
       add('emi-action-fix.js?v=20260822-1-late');
     },3000);
-
-    setTimeout(function(){ if(window.hfyMasterBoot) window.alert=oldAlert; },6000);
+    setTimeout(function(){
+      add('emi-final-fix.js?v=20260822-1');
+    },4500);
+    setTimeout(function(){if(window.hfyMasterBoot)window.alert=oldAlert;},7000);
   }
 })();
