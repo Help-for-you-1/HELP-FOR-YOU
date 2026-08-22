@@ -11,5 +11,6 @@ window.hfyPay=async function(id){
  }catch(e){console.error(e);alert('EMI Payment error: '+(e?.message||e));}
 };
 window.emiFinalPaid=window.hfyPay;
+window.emi30Paid=window.hfyPay;
 window.paid=window.hfyPay;
 })();
