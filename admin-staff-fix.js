@@ -1,0 +1,9 @@
+/* HELP FOR YOU — STAFF FIX ONLY. NO EMI CHANGES. */
+(function(){'use strict';
+function SB(){return window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+window.addStaff=function(){openBox('Add Staff','<div class="form"><label>Full Name<input id="stName"></label><label>Email<input id="stEmail" type="email"></label><label>Role<select id="stRole"><option value="staff">Staff</option><option value="manager">Manager</option><option value="collection">Collection</option><option value="admin">Admin</option></select></label><div class="full"><button class="btn green" onclick="saveStaffWithCredentials()">Generate User ID & Password</button></div></div>');};
+window.saveStaffWithCredentials=async function(){var n=(document.getElementById('stName')||{}).value||'',e=(document.getElementById('stEmail')||{}).value||'',r=(document.getElementById('stRole')||{}).value||'staff';if(!n.trim())return alert('Staff name is required.');try{var x=await SB().rpc('hfy_admin_create_staff',{p_name:n.trim(),p_email:e.trim()||null,p_role:r});if(x.error)throw x.error;var d=x.data||{};if(window.closeM)window.closeM();if(window.loadData)await window.loadData();openBox('Staff Login Credentials','<p><b>User ID:</b> '+esc(d.login_id)+'</p><p><b>Password:</b> '+esc(d.password)+'</p><p>Save these credentials securely.</p>');}catch(err){console.error(err);alert('Staff creation failed: '+(err.message||err));}};
+function bind(){var s=document.getElementById('staff'),b=s&&s.querySelector('button');if(b){b.onclick=window.addStaff;b.textContent='+ Add Staff';}}
+bind();setTimeout(bind,1000);setTimeout(bind,3000);
+})();
