@@ -17,8 +17,8 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
     setTimeout(function(){add('admin-customer-fix.js?v=20260822-2');},7000);
     setTimeout(function(){add('admin-staff-fix.js?v=20260822-1');},8000);
     setTimeout(function(){add('admin-flow-fix.js?v=20260822-1');},9000);
-    // Approval edit override loads after the existing approval script; EMI untouched.
-    setTimeout(function(){add('admin-approval-edit-fix.js?v=20260822-1');},10000);
+    // Approval edit override loads after existing scripts. EMI untouched.
+    setTimeout(function(){add('approval-edit-save-fix.js?v=20260822-2');},10000);
     setTimeout(function(){if(window.hfyMasterBoot)window.alert=oldAlert;},12000);
   }
 })();
