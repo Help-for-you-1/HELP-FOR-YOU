@@ -15,6 +15,10 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
     s.src='admin-master.js?v=20260822';
     s.defer=true;
     document.head.appendChild(s);
+    var a=document.createElement('script');
+    a.src='admin-approval-fix.js?v=20260822';
+    a.defer=true;
+    document.head.appendChild(a);
     setTimeout(function(){ if(window.hfyMasterBoot) window.alert=oldAlert; },4000);
   }
 })();
