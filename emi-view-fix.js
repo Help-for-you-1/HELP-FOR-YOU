@@ -1,9 +1,11 @@
 /* HELP FOR YOU — EMI View only
-   Keeps the existing admin page unchanged and replaces only the EMI View modal.
+   EMI / Repayment View: full EMI list + Paid/Pending/Overdue status + actions.
+   No other Admin section is changed.
 */
 (function () {
   function install() {
     if (typeof window.openBox !== 'function') return;
+    if (typeof window.esc !== 'function' || typeof window.money !== 'function') return;
 
     window.showEmiModal = function (x, es) {
       es = Array.isArray(es) ? es.slice() : [];
@@ -12,32 +14,36 @@
       });
 
       var today = new Date().toISOString().slice(0, 10);
-      var total = 0, paid = 0, pending = 0, overdue = 0, penalty = 0, remaining = 0;
+      var paidCount = 0, pendingCount = 0, overdueCount = 0;
+      var total = 0, paidAmount = 0, remaining = 0, penalty = 0;
+
+      function getStatus(e) {
+        var st = String(e.status || 'pending').toLowerCase().trim();
+        if (st === 'paid') return 'paid';
+        if (st === 'overdue') return 'overdue';
+        if (e.due && e.due < today) return 'overdue';
+        return 'pending';
+      }
 
       es.forEach(function (e) {
         var amount = Number(e.amount || 0);
         var pen = Number(e.penalty || 0);
         var p = Number(e.paid || 0);
         var rem = Math.max(0, amount + pen - p);
-        var st = String(e.status || 'pending').toLowerCase();
-
-        if (st !== 'paid' && e.due && e.due < today) st = 'overdue';
+        var st = getStatus(e);
 
         total += amount + pen;
-        paid += p;
+        paidAmount += p;
         penalty += pen;
         remaining += rem;
-        if (st === 'paid') paid += 0;
-        else if (st === 'overdue') overdue++;
-        else pending++;
+
+        if (st === 'paid') paidCount++;
+        else if (st === 'overdue') overdueCount++;
+        else pendingCount++;
       });
 
-      var paidCount = es.filter(function (e) {
-        return String(e.status || '').toLowerCase() === 'paid';
-      }).length;
-
       var next = es.find(function (e) {
-        return String(e.status || '').toLowerCase() !== 'paid' && e.due >= today;
+        return getStatus(e) !== 'paid' && e.due && e.due >= today;
       });
 
       var rows = es.map(function (e) {
@@ -45,26 +51,26 @@
         var pen = Number(e.penalty || 0);
         var p = Number(e.paid || 0);
         var rem = Math.max(0, amount + pen - p);
-        var st = String(e.status || 'pending').toLowerCase();
-
-        if (st !== 'paid' && e.due && e.due < today) st = 'overdue';
-
+        var st = getStatus(e);
         var cls = st === 'paid' ? 'paid' : st === 'overdue' ? 'over' : 'pending';
-        var action = st === 'paid'
-          ? '<span class="paid"><b>Paid</b></span> '
-          : '<button class="btn green" onclick="pay(\'' + esc(e.id) + '\')">Paid</button> ';
 
-        action += '<button class="btn gray" onclick="editEmi(\'' + esc(e.id) + '\')">Edit</button>';
+        var action = '';
+        if (st === 'paid') {
+          action = '<span class="paid"><b>Paid</b></span>';
+        } else {
+          action = '<button class="btn ' + (st === 'overdue' ? 'red' : 'green') + '" onclick="pay(\'' + window.esc(e.id) + '\')">Paid</button>';
+        }
+        action += ' <button class="btn gray" onclick="editEmi(\'' + window.esc(e.id) + '\')">Edit</button>';
 
         return '<tr>' +
-          '<td>' + esc(e.no) + '</td>' +
-          '<td>' + esc(e.due || '') + '</td>' +
-          '<td>₹' + money(amount) + '</td>' +
-          '<td>₹' + money(pen) + '</td>' +
-          '<td>₹' + money(amount + pen) + '</td>' +
-          '<td>₹' + money(p) + '</td>' +
-          '<td>₹' + money(rem) + '</td>' +
-          '<td class="' + cls + '">' + esc(st) + '</td>' +
+          '<td>' + window.esc(e.no) + '</td>' +
+          '<td>' + window.esc(e.due || '') + '</td>' +
+          '<td>₹' + window.money(amount) + '</td>' +
+          '<td>₹' + window.money(pen) + '</td>' +
+          '<td>₹' + window.money(amount + pen) + '</td>' +
+          '<td>₹' + window.money(p) + '</td>' +
+          '<td>₹' + window.money(rem) + '</td>' +
+          '<td class="' + cls + '"><b>' + window.esc(st) + '</b></td>' +
           '<td>' + action + '</td>' +
           '</tr>';
       }).join('');
@@ -74,18 +80,18 @@
       }
 
       window.openBox(
-        'EMI Schedule — ' + esc(x.loanId),
-        '<p><b>' + esc(x.name || '') + '</b> | Mobile: ' + esc(x.mobile || '') + '</p>' +
+        'EMI Schedule — ' + window.esc(x.loanId),
+        '<p><b>' + window.esc(x.name || '') + '</b> | Mobile: ' + window.esc(x.mobile || '') + '</p>' +
         '<div class="cards" style="grid-template-columns:repeat(3,1fr);margin:12px 0;">' +
           '<div class="card">Total EMI<b>' + es.length + '</b></div>' +
           '<div class="card">Paid EMI<b>' + paidCount + '</b></div>' +
-          '<div class="card">Pending EMI<b>' + pending + '</b></div>' +
-          '<div class="card">Overdue EMI<b>' + overdue + '</b></div>' +
-          '<div class="card">Total Paid<b>₹' + money(paid) + '</b></div>' +
-          '<div class="card">Remaining<b>₹' + money(remaining) + '</b></div>' +
+          '<div class="card">Pending EMI<b>' + pendingCount + '</b></div>' +
+          '<div class="card">Overdue EMI<b>' + overdueCount + '</b></div>' +
+          '<div class="card">Total Paid<b>₹' + window.money(paidAmount) + '</b></div>' +
+          '<div class="card">Remaining<b>₹' + window.money(remaining) + '</b></div>' +
         '</div>' +
-        '<p><b>Penalty:</b> ₹' + money(penalty) + ' &nbsp; <b>Total Due:</b> ₹' + money(total) +
-        ' &nbsp; <b>Next EMI:</b> ' + (next ? ('EMI ' + esc(next.no) + ' — ' + esc(next.due)) : 'None') + '</p>' +
+        '<p><b>Penalty:</b> ₹' + window.money(penalty) + ' &nbsp; <b>Total Due:</b> ₹' + window.money(total) +
+        ' &nbsp; <b>Next EMI:</b> ' + (next ? ('EMI ' + window.esc(next.no) + ' — ' + window.esc(next.due)) : 'None') + '</p>' +
         '<div class="wrap"><table style="min-width:1050px">' +
           '<thead><tr>' +
             '<th>EMI No.</th><th>Due Date</th><th>EMI Amount</th><th>Penalty</th>' +
@@ -97,9 +103,10 @@
     };
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', install);
-  } else {
-    install();
+  function start() {
+    if (typeof window.openBox === 'function') install();
+    else setTimeout(start, 100);
   }
+
+  start();
 })();
