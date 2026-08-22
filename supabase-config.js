@@ -10,4 +10,8 @@ if (location.pathname.endsWith('/admin.html') || location.pathname.endsWith('adm
   hfySessionFix.src = 'admin-session-fix.js?v=3';
   hfySessionFix.defer = true;
   document.head.appendChild(hfySessionFix);
+  var hfyAdminEnhance = document.createElement('script');
+  hfyAdminEnhance.src = 'admin-enhancements.js?v=1';
+  hfyAdminEnhance.defer = true;
+  document.head.appendChild(hfyAdminEnhance);
 }
