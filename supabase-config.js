@@ -14,9 +14,9 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
     add('admin-master.js?v=20260822-2');
     add('admin-approval-fix.js?v=20260822-2');
     add('emi-view-fix.js?v=20260822-2');
-    add('admin-final-fix.js?v=20260822-3');
+    add('admin-final-fix.js?v=20260822-4');
     setTimeout(function(){
-      add('admin-final-fix.js?v=20260822-3-late');
+      add('admin-final-fix.js?v=20260822-4-late');
       add('emi-action-fix.js?v=20260822-1');
     },1500);
     setTimeout(function(){
@@ -25,6 +25,10 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
     setTimeout(function(){
       add('emi-final-fix.js?v=20260822-1');
     },4500);
-    setTimeout(function(){if(window.hfyMasterBoot)window.alert=oldAlert;},7000);
+    // This is intentionally last: it fixes only the three requested problems.
+    setTimeout(function(){
+      add('admin-final-fix.js?v=20260822-4-final');
+    },6000);
+    setTimeout(function(){if(window.hfyMasterBoot)window.alert=oldAlert;},8500);
   }
 })();
