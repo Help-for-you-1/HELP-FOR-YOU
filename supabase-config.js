@@ -20,7 +20,7 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
       try {
         if (!window.apRows || typeof window.editApproval !== 'function') return;
         const pending = (window.db?.applications || []).map((x,index)=>({x,index})).filter(({x})=>!['approved','rejected','disbursed'].includes(String(x.status||'').toLowerCase()));
-        window.apRows.innerHTML = pending.map(({x,index})=>`<tr><td>${esc(x.name)}</td><td>${esc(x.mobile)}</td><td>${esc(x.date)}</td><td>₹${money(x.amount)}</td><td class="pending">Pending for Approval</td><td><button class="btn blue" onclick="editApproval(${index})">Edit</button></td></tr>`).join('') || '<tr><td colspan="6">No pending approval.</td></tr>';
+        window.apRows.innerHTML = pending.map(({x,index})=>`<tr><td>${esc(x.name)}</td><td>${esc(x.mobile)}</td><td>${esc(x.date)}</td><td>₹${money(x.amount)}</td><td class="pending">${esc(x.kyc_status||x.kyc||'Pending')} / Pending for Approval</td><td><button class="btn blue" onclick="editApproval(${index})">Edit</button></td></tr>`).join('') || '<tr><td colspan="6">No pending approval.</td></tr>';
       } catch(e){console.error('Approval index fix failed',e);}
     },1200);
   }
@@ -33,103 +33,42 @@ window.HFY_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-
     const section=document.getElementById('customers');
     if(!section){setTimeout(bootAddCustomer,300);return;}
     const btn=document.createElement('button');btn.id='hfyAddCustomerBtn';btn.className='btn blue';btn.textContent='+ Add Customer';btn.style.marginBottom='12px';btn.onclick=openAddCustomer;section.insertBefore(btn,section.firstChild.nextSibling);
-    window.openAddCustomer=function(){if(typeof openBox!=='function')return;openBox('Add Customer',`<div class="form">
-      <label>Full Name<input id="acName" autocomplete="name" required></label><label>Mobile Number<input id="acMobile" inputmode="tel" maxlength="15" required></label><label>Email<input id="acEmail" type="email"></label><label>Date of Birth<input id="acDob" type="date"></label><label>Gender<select id="acGender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></label><label>Occupation<input id="acOccupation"></label><label>Monthly Income<input id="acIncome" type="number" min="0"></label><label>PAN Number<input id="acPan" maxlength="10" style="text-transform:uppercase"></label><label>Aadhaar Number<input id="acAadhaar" inputmode="numeric" maxlength="12"></label><label>State<input id="acState"></label><label>District<input id="acDistrict"></label><label>Pincode<input id="acPincode" inputmode="numeric" maxlength="6"></label><label class="full">Address<input id="acAddress"></label><div class="full"><button class="btn green" onclick="saveNewCustomer()">Save Customer</button><button class="btn gray" onclick="closeM()">Cancel</button></div></div>`);};
-    window.saveNewCustomer=async function(){
-      const name=document.getElementById('acName').value.trim(),mobile=document.getElementById('acMobile').value.trim();
-      if(!name||!mobile){alert('Name and Mobile Number are required.');return;}
-      const btnSave=document.querySelector('#mb .green');if(btnSave){btnSave.disabled=true;btnSave.textContent='Saving...';}
-      const code='CUST-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Math.random().toString(36).slice(2,8).toUpperCase();
-      const row={customer_code:code,full_name:name,mobile,email:document.getElementById('acEmail').value.trim()||null,date_of_birth:document.getElementById('acDob').value||null,gender:document.getElementById('acGender').value||null,occupation:document.getElementById('acOccupation').value.trim()||null,monthly_income:document.getElementById('acIncome').value?Number(document.getElementById('acIncome').value):null,pan_number:document.getElementById('acPan').value.trim().toUpperCase()||null,aadhaar_number:document.getElementById('acAadhaar').value.trim()||null,state:document.getElementById('acState').value.trim()||null,district:document.getElementById('acDistrict').value.trim()||null,pincode:document.getElementById('acPincode').value.trim()||null,address:document.getElementById('acAddress').value.trim()||null,kyc_status:'Pending',status:'active',account_status:'active'};
-      const {data,error}=await client.from('customers').insert(row).select('*').single();
-      if(error){console.error('Add customer failed',error);alert('Customer save failed: '+error.message);if(btnSave){btnSave.disabled=false;btnSave.textContent='Save Customer';}return;}
-      const app={customer_id:data.id,full_name:name,name,mobile,email:row.email,address:row.address,date_of_birth:row.date_of_birth,gender:row.gender,occupation:row.occupation,monthly_income:row.monthly_income,pan_number:row.pan_number,aadhaar_number:row.aadhaar_number,status:'submitted',kyc_status:'Pending',requested_amount:0,updated_at:new Date().toISOString()};
-      const {error:appError}=await client.from('loan_applications').insert(app);
-      if(appError){console.error('Application creation failed',appError);alert('Customer saved, but application creation failed: '+appError.message);if(typeof loadData==='function')await loadData();closeM();return;}
-      if(typeof loadData==='function')await loadData();
-      closeM();
-      alert('Customer added successfully and sent to All Applications + Approval. Customer ID: '+data.id+'\nCustomer Code: '+data.customer_code);
-    };
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootAddCustomer);else setTimeout(bootAddCustomer,250);
+    window.openAddCustomer=function(){if(typeof openBox!=='function')return;openBox('Add Customer',`<div class="form"><label>Full Name<input id="acName" autocomplete="name" required></label><label>Mobile Number<input id="acMobile" inputmode="tel" maxlength="15" required></label><label>Email<input id="acEmail" type="email"></label><label>Date of Birth<input id="acDob" type="date"></label><label>Gender<select id="acGender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></label><label>Occupation<input id="acOccupation"></label><label>Monthly Income<input id="acIncome" type="number" min="0"></label><label>PAN Number<input id="acPan" maxlength="10" style="text-transform:uppercase"></label><label>Aadhaar Number<input id="acAadhaar" inputmode="numeric" maxlength="12"></label><label>State<input id="acState"></label><label>District<input id="acDistrict"></label><label>Pincode<input id="acPincode" inputmode="numeric" maxlength="6"></label><label class="full">Address<input id="acAddress"></label><div class="full"><button class="btn green" onclick="saveNewCustomer()">Save Customer</button><button class="btn gray" onclick="closeM()">Cancel</button></div></div>`);};
+    window.saveNewCustomer=async function(){const name=document.getElementById('acName').value.trim(),mobile=document.getElementById('acMobile').value.trim();if(!name||!mobile){alert('Name and Mobile Number are required.');return}const code='CUST-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Math.random().toString(36).slice(2,8).toUpperCase();const row={customer_code:code,full_name:name,mobile,email:document.getElementById('acEmail').value.trim()||null,date_of_birth:document.getElementById('acDob').value||null,gender:document.getElementById('acGender').value||null,occupation:document.getElementById('acOccupation').value.trim()||null,monthly_income:document.getElementById('acIncome').value?Number(document.getElementById('acIncome').value):null,pan_number:document.getElementById('acPan').value.trim().toUpperCase()||null,aadhaar_number:document.getElementById('acAadhaar').value.trim()||null,state:document.getElementById('acState').value.trim()||null,district:document.getElementById('acDistrict').value.trim()||null,pincode:document.getElementById('acPincode').value.trim()||null,address:document.getElementById('acAddress').value.trim()||null,kyc_status:'Pending',status:'active',account_status:'active'};const{data,error}=await client.from('customers').insert(row).select('*').single();if(error){alert('Customer save failed: '+error.message);return}const app={customer_id:data.id,full_name:name,name,mobile,email:row.email,address:row.address,date_of_birth:row.date_of_birth,gender:row.gender,occupation:row.occupation,monthly_income:row.monthly_income,pan_number:row.pan_number,aadhaar_number:row.aadhaar_number,status:'submitted',kyc_status:'Pending',requested_amount:0,updated_at:new Date().toISOString()};const{error:appError}=await client.from('loan_applications').insert(app);if(appError){alert('Customer saved, but application creation failed: '+appError.message);return}if(typeof loadData==='function')await loadData();closeM();alert('Customer added successfully and sent to All Applications + Approval. Customer ID: '+data.id)};
+  } if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootAddCustomer);else setTimeout(bootAddCustomer,250);
 })();
-
-// Robust approval override: keeps the existing Admin design, but fixes field mapping,
-// customer linking, numeric Loan ID generation, loan account creation and EMI schedule.
-(function () {
-  function installApprovalFix() {
-    if (!location.pathname.toLowerCase().endsWith('/admin.html')) return;
-    if (typeof window.approve !== 'function') { setTimeout(installApprovalFix,300); return; }
-    window.approve = async function(i) {
-      const x = window.db?.applications?.[i];
-      if (!x) { alert('Application not found. Please refresh Admin.'); return; }
-      const value = id => document.getElementById(id)?.value ?? '';
-      const name = value('en').trim() || x.name || x.full_name || '';
-      const mobile = value('em').trim() || x.mobile || '';
-      const amount = Number(value('ea') || x.approved_amount || x.requested_amount || x.loan_amount || 0);
-      const kyc = value('ek') || x.kyc_status || 'Pending';
-      const address = value('ead') || x.address || '';
-      const applyDate = value('edate') || x.date || new Date().toISOString().slice(0,10);
-      const email = value('ee').trim() || x.email || null;
-      const pan = value('epan').trim().toUpperCase() || x.pan_number || null;
-      const aadhaar = value('eaad').trim() || x.aadhaar_number || null;
-      const months = Number(x.tenure_months || x.tenure || (amount <= 5000 ? 1 : amount <= 10000 ? 2 : amount <= 20000 ? 3 : 0));
-      if (!amount || amount < 1000 || amount > 20000 || !months) { alert('Loan amount must be ₹1,000 to ₹20,000.'); return; }
-      const interestRate = Number(x.interest_rate || 20);
-      const totalRepayment = Number(x.total_repayment || (amount + amount * interestRate / 100 * months));
-      const dailyEmi = totalRepayment / (months * 30);
-      try {
-        const applicationUpdate = {
-          full_name:name,name,mobile,email,address,pan_number:pan,aadhaar_number:aadhaar,
-          requested_amount:Number(x.requested_amount || amount),approved_amount:amount,loan_amount:amount,
-          interest_rate:interestRate,tenure:months,tenure_months:months,emi_amount:totalRepayment / months,
-          daily_emi:dailyEmi,total_interest:totalRepayment-amount,total_repayment:totalRepayment,
-          kyc_status:kyc,status:'approved',updated_at:new Date().toISOString()
-        };
-        let r = await client.from('loan_applications').update(applicationUpdate).eq('id',x.id);
-        if (r.error) throw r.error;
-
-        let customerId = x.customer_id || null;
-        if (customerId) {
-          r = await client.from('customers').update({full_name:name,mobile,email,address,pan_number:pan,aadhaar_number:aadhaar,kyc_status:kyc,updated_at:new Date().toISOString()}).eq('id',customerId);
-          if (r.error) throw r.error;
-        } else {
-          const existing = await client.from('customers').select('id').eq('mobile',mobile).maybeSingle();
-          if (existing.error) throw existing.error;
-          if (existing.data) customerId=existing.data.id;
-          else {
-            const created=await client.from('customers').insert({full_name:name,mobile,email,address,pan_number:pan,aadhaar_number:aadhaar,kyc_status:kyc,status:'active',account_status:'active'}).select('id').single();
-            if (created.error) throw created.error;
-            customerId=created.data.id;
-          }
-          r=await client.from('loan_applications').update({customer_id:customerId}).eq('id',x.id);
-          if(r.error)throw r.error;
-        }
-
-        const maxR=await client.from('loan_accounts').select('loan_id').not('loan_id','is',null).order('loan_id',{ascending:false}).limit(1);
-        if(maxR.error)throw maxR.error;
-        const nextLoanId=(maxR.data?.length ? Number(maxR.data[0].loan_id) : 100000)+1;
-        const start=applyDate || new Date().toISOString().slice(0,10);
-        const endDate=new Date(start+'T00:00:00');
-        endDate.setDate(endDate.getDate()+months*30);
-        const account={loan_id:nextLoanId,customer_id:customerId,loan_amount:amount,total_repayment:totalRepayment,tenure_months:months,daily_emi:dailyEmi,total_paid:0,remaining_amount:totalRepayment,missed_days:0,penalty_amount:0,loan_status:'active',start_date:start,end_date:endDate.toISOString().slice(0,10),application_id:x.id};
-        const acc=await client.from('loan_accounts').insert(account).select('id').single();
-        if(acc.error)throw acc.error;
-        const rows=[];
-        for(let n=1;n<=months*30;n++){
-          const d=new Date(start+'T00:00:00');d.setDate(d.getDate()+n);
-          rows.push({loan_account_id:acc.data.id,loan_id:nextLoanId,customer_id:customerId,emi_number:n,due_date:d.toISOString().slice(0,10),emi_amount:dailyEmi,penalty:0,total_due:dailyEmi,paid_amount:0,remaining_amount:dailyEmi,status:'pending'});
-        }
-        const emi=await client.from('loan_emi_schedule').insert(rows);
-        if(emi.error)throw emi.error;
-        if(typeof loadData==='function')await loadData();
-        if(typeof closeM==='function')closeM();
-        alert('Approved successfully. Loan ID: '+nextLoanId);
-      } catch(e) {
-        console.error('Approval failed',e);
-        alert('Approval failed: '+(e.message||e));
-      }
-    };
+(function(){
+  function kycBoot(){
+    if(!location.pathname.toLowerCase().endsWith('/admin.html'))return;
+    const approval=document.getElementById('approval');if(!approval){setTimeout(kycBoot,400);return}
+    if(document.getElementById('hfyKycSection'))return;
+    const sec=document.createElement('section');sec.id='hfyKycSection';sec.className='panel';sec.innerHTML='<h2>KYC Approved</h2><div class="wrap"><table><thead><tr><th>Name</th><th>Mobile</th><th>Application</th><th>Loan Amount</th><th>KYC Status</th><th>Documents</th><th>Action</th></tr></thead><tbody id="hfyKycRows"></tbody></table></div>';
+    approval.parentNode.insertBefore(sec,approval.nextSibling);
+    const nav=document.createElement('div');nav.className='m';nav.id='hfyKycNav';nav.textContent='🪪 KYC Approved';nav.onclick=function(){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));sec.classList.add('on');document.querySelectorAll('.m').forEach(x=>x.classList.remove('on'));nav.classList.add('on')};const approvalNav=[...document.querySelectorAll('.m')].find(x=>x.textContent.includes('Approval'));if(approvalNav)approvalNav.parentNode.insertBefore(nav,approvalNav.nextSibling);
+    window.renderKyc=function(){const rows=document.getElementById('hfyKycRows');if(!rows)return;const apps=window.db?.applications||[];rows.innerHTML=apps.map((x,i)=>{const s=String(x.kyc_status||x.kyc||'Pending').toLowerCase();const docs=x.documents||'Not uploaded';return `<tr><td>${esc(x.name)}</td><td>${esc(x.mobile)}</td><td>${esc(x.id)}</td><td>₹${money(x.amount)}</td><td class="${s==='approved'?'paid':s==='rejected'?'over':'pending'}">${esc(x.kyc_status||x.kyc||'Pending')}</td><td>${esc(docs)}</td><td>${s==='approved'?'<b class="paid">KYC Approved</b>':s==='rejected'?'<b class="over">KYC Rejected</b>':`<button class="btn green" onclick="approveKyc(${i})">Approve KYC</button><button class="btn red" onclick="rejectKyc(${i})">Reject KYC</button>`}</td></tr>`}).join('')||'<tr><td colspan="7">No KYC applications.</td></tr>'};
+    window.approveKyc=async function(i){const x=window.db?.applications?.[i];if(!x)return;try{let r=await client.from('loan_applications').update({kyc_status:'Approved',updated_at:new Date().toISOString()}).eq('id',x.id);if(r.error)throw r.error;if(x.customer_id){r=await client.from('customers').update({kyc_status:'Approved',updated_at:new Date().toISOString()}).eq('id',x.customer_id);if(r.error)throw r.error}if(typeof loadData==='function')await loadData();renderKyc();alert('KYC Approved successfully.')}catch(e){alert('KYC approval failed: '+e.message)}};
+    window.rejectKyc=async function(i){const x=window.db?.applications?.[i];if(!x)return;const reason=prompt('Enter KYC rejection reason:','Documents not verified');if(reason===null)return;try{let r=await client.from('loan_applications').update({kyc_status:'Rejected',kyc_rejection_reason:reason,updated_at:new Date().toISOString()}).eq('id',x.id);if(r.error)throw r.error;if(x.customer_id){r=await client.from('customers').update({kyc_status:'Rejected',updated_at:new Date().toISOString()}).eq('id',x.customer_id);if(r.error)throw r.error}if(typeof loadData==='function')await loadData();renderKyc();alert('KYC rejected.')}catch(e){alert('KYC rejection failed: '+e.message)}};
+    const oldRender=window.render;window.render=function(){if(oldRender)oldRender();renderKyc()};
+    setTimeout(renderKyc,1500);
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(installApprovalFix,1200));else setTimeout(installApprovalFix,1200);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(kycBoot,800));else setTimeout(kycBoot,800);
+})();
+(function(){
+  function approvalGuard(){
+    if(!location.pathname.toLowerCase().endsWith('/admin.html'))return;
+    if(typeof window.approve!=='function'){setTimeout(approvalGuard,400);return}
+    const original=window.approve;
+    window.approve=async function(i){const x=window.db?.applications?.[i];if(!x)return;const k=String(x.kyc_status||x.kyc||'Pending').toLowerCase();if(k!=='approved'){alert('KYC must be Approved before Loan Approval. Please approve KYC first.');return}return original(i)};
+  }
+  setTimeout(approvalGuard,1800);
+})();
+(function(){
+  function editKyc(){
+    if(!location.pathname.toLowerCase().endsWith('/admin.html'))return;
+    if(typeof window.editApproval!=='function'){setTimeout(editKyc,400);return}
+    const original=window.editApproval;
+    window.editApproval=function(i){const x=window.db?.applications?.[i];if(!x)return;openBox('Edit / Approval',`<div class="form"><label>Name<input id="en" value="${esc(x.name)}"></label><label>Mobile<input id="em" value="${esc(x.mobile)}"></label><label>Apply Date<input id="edate" type="date" value="${esc(x.date)}"></label><label>Loan Amount<input id="ea" type="number" value="${Number(x.amount||0)}"></label><label>Email<input id="ee" value="${esc(x.email||'')}"></label><label>KYC Status<select id="ek"><option ${String(x.kyc_status||x.kyc).toLowerCase()==='pending'?'selected':''}>Pending</option><option ${String(x.kyc_status||x.kyc).toLowerCase()==='under review'?'selected':''}>Under Review</option><option ${String(x.kyc_status||x.kyc).toLowerCase()==='approved'?'selected':''}>Approved</option><option ${String(x.kyc_status||x.kyc).toLowerCase()==='rejected'?'selected':''}>Rejected</option></select></label><label>PAN<input id="epan" value="${esc(x.pan_number||'')}"></label><label>Aadhaar<input id="eaad" value="${esc(x.aadhaar_number||'')}"></label><label class="full">Address<input id="ead" value="${esc(x.address||'')}"></label><div class="full"><button class="btn blue" onclick="saveKycEdit(${i})">Save Changes</button><button class="btn green" onclick="approveKyc(${i})">Approve KYC</button><button class="btn red" onclick="rejectKyc(${i})">Reject KYC</button><button class="btn green" onclick="approve(${i})">Approve Loan</button><button class="btn red" onclick="reject(${i})">Reject Loan</button></div></div>`)};
+    window.saveKycEdit=async function(i){const x=window.db?.applications?.[i];if(!x)return;try{const vals={full_name:document.getElementById('en').value.trim(),name:document.getElementById('en').value.trim(),mobile:document.getElementById('em').value.trim(),address:document.getElementById('ead').value.trim(),email:document.getElementById('ee').value.trim()||null,pan_number:document.getElementById('epan').value.trim().toUpperCase()||null,aadhaar_number:document.getElementById('eaad').value.trim()||null,kyc_status:document.getElementById('ek').value,updated_at:new Date().toISOString()};let r=await client.from('loan_applications').update(vals).eq('id',x.id);if(r.error)throw r.error;if(x.customer_id){r=await client.from('customers').update({full_name:vals.full_name,mobile:vals.mobile,address:vals.address,email:vals.email,pan_number:vals.pan_number,aadhaar_number:vals.aadhaar_number,kyc_status:vals.kyc_status,updated_at:new Date().toISOString()}).eq('id',x.customer_id);if(r.error)throw r.error}if(typeof loadData==='function')await loadData();closeM();alert('Application and KYC details saved.')}catch(e){alert('Save failed: '+e.message)}};
+  }
+  setTimeout(editKyc,2200);
 })();
