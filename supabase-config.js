@@ -1,21 +1,20 @@
 // HELP FOR YOU — Supabase client configuration
 window.HFY_SUPABASE_URL = "https://bvyruwvvlubgqficjblq.supabase.co";
 window.HFY_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Tet-jboVRqYRD5DpaQYAHw_XT-Er47t";
-if (location.pathname.endsWith('/admin.html') || location.pathname.endsWith('admin.html')) {
-  var hfyFix = document.createElement('script');
-  hfyFix.src = 'admin-fix.js?v=7';
-  hfyFix.defer = true;
-  document.head.appendChild(hfyFix);
-  var hfySessionFix = document.createElement('script');
-  hfySessionFix.src = 'admin-session-fix.js?v=5';
-  hfySessionFix.defer = true;
-  document.head.appendChild(hfySessionFix);
-  var hfyAdminEnhance = document.createElement('script');
-  hfyAdminEnhance.src = 'admin-enhancements.js?v=3';
-  hfyAdminEnhance.defer = true;
-  document.head.appendChild(hfyAdminEnhance);
-  var hfyEmiViewFix = document.createElement('script');
-  hfyEmiViewFix.src = 'emi-view-fix.js?v=5';
-  hfyEmiViewFix.defer = true;
-  document.head.appendChild(hfyEmiViewFix);
-}
+
+// The original admin.html has an older loader which may show a duplicate alert
+// before the master runtime takes control. Suppress only that one startup alert.
+(function(){
+  if(location.pathname.endsWith('/admin.html') || location.pathname.endsWith('admin.html')){
+    var oldAlert=window.alert;
+    window.alert=function(msg){
+      if(typeof msg==='string' && msg.indexOf('Supabase connection/data load error:')===0) return;
+      return oldAlert.apply(window,arguments);
+    };
+    var s=document.createElement('script');
+    s.src='admin-master.js?v=20260822';
+    s.defer=true;
+    document.head.appendChild(s);
+    setTimeout(function(){ if(window.hfyMasterBoot) window.alert=oldAlert; },4000);
+  }
+})();
