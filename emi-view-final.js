@@ -13,13 +13,13 @@ async function viewEmiFinal(i){
   let customer={}; const c=await sb.from('customers').select('full_name,mobile').eq('id',row.customer_id).maybeSingle(); if(c.error)throw c.error; customer=c.data||{};
   let total=0,paid=0,remaining=0,penalty=0,pc=0,pending=0,overdue=0;
   const rows=list.map(e=>{
-   const a=Number(e.emi_amount||0),p=Number(e.penalty||0),pa=Number(e.paid_amount||0),due=a+p,rem=Math.max(0,due-pa); let s=String(e.status||'pending').toLowerCase();
+   const a=Number(e.emi_amount||0),p=Number(e.penalty||0),pa=Number(e.paid_amount||0),grossDue=a+p,rem=Math.max(0,grossDue-pa); let s=String(e.status||'pending').toLowerCase();
    if(s!=='paid'&&rem>0&&String(e.due_date||'')<todayF())s='overdue';
-   total+=due;paid+=pa;remaining+=rem;penalty+=p;if(s==='paid')pc++;else if(s==='overdue')overdue++;else pending++;
+   total+=grossDue;paid+=pa;remaining+=rem;penalty+=p;if(s==='paid')pc++;else if(s==='overdue')overdue++;else pending++;
    const act=s==='paid'?'<span class="paid"><b>Paid</b></span>':`<button class="btn green" onclick="emiFinalPaid('${escF(e.id)}')">Paid</button>`;
-   return `<tr><td>${escF(e.emi_number)}</td><td>${escF(String(e.due_date||'').slice(0,10))}</td><td>${moneyF(a)}</td><td>${moneyF(p)}</td><td>${moneyF(due)}</td><td>${moneyF(pa)}</td><td>${moneyF(rem)}</td><td>${escF(s)}</td><td>${act}</td></tr>`;
+   return `<tr><td>${escF(e.emi_number)}</td><td>${escF(String(e.due_date||'').slice(0,10))}</td><td>${moneyF(a)}</td><td>${moneyF(p)}</td><td>${moneyF(rem)}</td><td>${moneyF(pa)}</td><td>${moneyF(rem)}</td><td>${escF(s)}</td><td>${act}</td></tr>`;
   }).join('');
-  window.openBox('EMI / Repayment — Full EMI List',`<p><b>Customer:</b> ${escF(customer.full_name||'-')} &nbsp; <b>Mobile:</b> ${escF(customer.mobile||'-')} &nbsp; <b>Loan ID:</b> ${escF(loanId)}</p><div class="wrap"><table style="min-width:1100px"><thead><tr><th>EMI No.</th><th>Due Date</th><th>EMI Amount</th><th>Penalty</th><th>Total Due</th><th>Paid</th><th>Remaining</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows||'<tr><td colspan="9">No EMI schedule found.</td></tr>'}</tbody></table></div><p><b>Total EMI:</b> ${list.length} &nbsp; <b>Paid:</b> ${pc} &nbsp; <b>Pending:</b> ${pending} &nbsp; <b>Overdue:</b> ${overdue} &nbsp; <b>Total Paid:</b> ${moneyF(paid)} &nbsp; <b>Remaining:</b> ${moneyF(remaining)} &nbsp; <b>Penalty:</b> ${moneyF(penalty)} &nbsp; <b>Total Due:</b> ${moneyF(total)}</p>`);
+  window.openBox('EMI / Repayment — Full EMI List',`<p><b>Customer:</b> ${escF(customer.full_name||'-')} &nbsp; <b>Mobile:</b> ${escF(customer.mobile||'-')} &nbsp; <b>Loan ID:</b> ${escF(loanId)}</p><div class="wrap"><table style="min-width:1100px"><thead><tr><th>EMI No.</th><th>Due Date</th><th>EMI Amount</th><th>Penalty</th><th>Total Due (Balance)</th><th>Paid</th><th>Remaining</th><th>Status</th><th>Action</th></tr></thead><tbody>${rows||'<tr><td colspan="9">No EMI schedule found.</td></tr>'}</tbody></table></div><p><b>Total EMI:</b> ${list.length} &nbsp; <b>Paid:</b> ${pc} &nbsp; <b>Pending:</b> ${pending} &nbsp; <b>Overdue:</b> ${overdue} &nbsp; <b>Total Paid:</b> ${moneyF(paid)} &nbsp; <b>Remaining:</b> ${moneyF(remaining)} &nbsp; <b>Penalty:</b> ${moneyF(penalty)} &nbsp; <b>Total Loan Due:</b> ${moneyF(total)}</p>`);
  }catch(e){console.error(e);alert('EMI list load failed: '+(e?.message||e));}
 }
 window.emiFinalPaid=async function(id){
