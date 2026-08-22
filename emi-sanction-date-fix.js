@@ -21,7 +21,16 @@ async function syncEmiDatesSD(){
     }
   }catch(e){console.error('EMI sanction date sync:',e)}
 }
-const oldShowSD=window.show;
-window.show=(id,b)=>{if(oldShowSD)oldShowSD(id,b);if(id==='repay')setTimeout(syncEmiDatesSD,250)};
+let lastShowSD=null;
+function installShowSD(){
+  const current=window.show;
+  if(!current||current===lastShowSD||current.__emiSanctionDateWrapper)return;
+  const wrapped=function(id,b){const r=current.apply(this,arguments);if(id==='repay')setTimeout(syncEmiDatesSD,300);return r};
+  wrapped.__emiSanctionDateWrapper=true;
+  window.show=wrapped;
+  lastShowSD=wrapped;
+}
+setInterval(installShowSD,500);
 setTimeout(syncEmiDatesSD,1200);
+setTimeout(syncEmiDatesSD,2500);
 })();
