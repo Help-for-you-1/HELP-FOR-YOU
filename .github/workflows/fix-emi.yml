@@ -1,0 +1,129 @@
+name: Fix EMI View Only
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch only EMI view function
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('admin.html')
+          s=p.read_text(encoding='utf-8')
+          start=s.index('async function viewRepay(i){')
+          end=s.index('/* SHOW EMI MODAL */', start)
+          new=r'''async function viewRepay(i){
+
+let x=db.customers[i];
+
+/* Always read the complete EMI schedule directly from Supabase for this loan. */
+let r=await sb
+.from('loan_emi_schedule')
+.select('*')
+.eq('loan_id',x.loanId)
+.order('emi_number',{ascending:true});
+
+if(r.error){
+alert('EMI schedule load failed: '+r.error.message);
+return;
+}
+
+let realEmis=(r.data||[]).map(e=>({
+id:e.id,
+loanId:String(e.loan_id||''),
+customer:x.name||'',
+no:e.emi_number,
+due:e.due_date,
+amount:Number(e.emi_amount||0),
+days:Math.max(0,Math.floor((new Date().setHours(0,0,0,0)-new Date(e.due_date+'T00:00:00'))/86400000)),
+penalty:Number(e.penalty||0),
+paid:Number(e.paid_amount||0),
+status:String(e.status||'pending').toLowerCase()
+}));
+
+/* If no schedule exists, create the complete schedule once. */
+if(!realEmis.length){
+
+let count=Math.max(1,(Number(x.months)||1)*30);
+let sanction=x.sanction||new Date().toISOString().slice(0,10);
+let daily=Number(x.emi||0)/30;
+let rows=[];
+
+for(let k=0;k<count;k++){
+let d=new Date(sanction+'T00:00:00');
+d.setDate(d.getDate()+k+1);
+rows.push({
+loan_account_id:x.accountId,
+loan_id:Number(x.loanId),
+customer_id:x.customerId,
+emi_number:k+1,
+due_date:d.toISOString().slice(0,10),
+emi_amount:daily,
+penalty:0,
+total_due:daily,
+paid_amount:0,
+remaining_amount:daily,
+status:'pending'
+});
+}
+
+r=await sb.from('loan_emi_schedule').insert(rows);
+if(r.error){
+alert('EMI schedule create failed: '+r.error.message);
+return;
+}
+
+await loadData();
+
+r=await sb
+.from('loan_emi_schedule')
+.select('*')
+.eq('loan_id',x.loanId)
+.order('emi_number',{ascending:true});
+
+if(r.error){
+alert('EMI schedule reload failed: '+r.error.message);
+return;
+}
+
+realEmis=(r.data||[]).map(e=>({
+id:e.id,
+loanId:String(e.loan_id||''),
+customer:x.name||'',
+no:e.emi_number,
+due:e.due_date,
+amount:Number(e.emi_amount||0),
+days:Math.max(0,Math.floor((new Date().setHours(0,0,0,0)-new Date(e.due_date+'T00:00:00'))/86400000)),
+penalty:Number(e.penalty||0),
+paid:Number(e.paid_amount||0),
+status:String(e.status||'pending').toLowerCase()
+}));
+}
+
+showEmiModal(x,realEmis);
+
+}
+
+
+'''
+          p.write_text(s[:start]+new+s[end:],encoding='utf-8')
+          PY
+      - name: Commit EMI-only fix and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add admin.html
+          git commit -m "Fix EMI schedule view" || true
+          git push
+          rm -f .github/workflows/fix-emi.yml
+          git add .github/workflows/fix-emi.yml
+          git commit -m "Remove temporary EMI fix workflow" || true
+          git push
