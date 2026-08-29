@@ -1,14 +1,15 @@
-/* HELP FOR YOU — STAFF EMI PAYMENT ONLY. Pay Now uses the same payment flow as Customer Portal. */
+/* HELP FOR YOU — STAFF EMI PAYMENT + GROUPED EMI LIST. */
 (function(){
 'use strict';
 function money(v){return '₹'+Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function date(v){return v?new Date(v).toLocaleDateString('en-IN'):''}
 function modal(html){
  let m=document.getElementById('staffPayModal');
  if(!m){
   m=document.createElement('div');m.id='staffPayModal';
   m.style='position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:18px;z-index:9999';
-  m.innerHTML='<div style="background:#fff;border-radius:14px;padding:22px;width:min(460px,100%);max-height:92vh;overflow:auto"><div id="staffPayBody"></div></div>';
+  m.innerHTML='<div style="background:#fff;border-radius:14px;padding:22px;width:min(700px,100%);max-height:92vh;overflow:auto"><div id="staffPayBody"></div></div>';
   document.body.appendChild(m);
  }
  document.getElementById('staffPayBody').innerHTML=html;m.style.display='flex';
@@ -42,4 +43,49 @@ async function submitPay(emi,remaining){
 }
 window.staffOpenEmiPayment=openPay;
 window.staffConfirmEmiPay=submitPay;
+
+/* Staff EMI section: one row per loan, with all EMIs inside View. */
+function setupEmiList(){
+ const table=document.querySelector('#emi .wrap table');
+ if(!table)return;
+ const head=table.querySelector('thead tr');
+ if(head)head.innerHTML='<th>Loan ID</th><th>Name</th><th>Mobile Number</th><th>Due Amount</th><th>Due Date</th><th>Action</th>';
+ window.renderEmi=function(){
+  const tbody=document.getElementById('emiRows'); if(!tbody)return;
+  const emis=(window.cache&&Array.isArray(window.cache.emis))?window.cache.emis:[];
+  const customers=(window.cache&&Array.isArray(window.cache.customers))?window.cache.customers:[];
+  const groups=new Map();
+  emis.forEach(e=>{
+   const key=String(e.loan_account_id||e.loan_id||e.customer_id||'unknown');
+   if(!groups.has(key))groups.set(key,[]);groups.get(key).push(e);
+  });
+  const rows=[...groups.values()].map(list=>{
+   list.sort((a,b)=>new Date(a.due_date||0)-new Date(b.due_date||0));
+   const first=list[0];
+   const c=customers.find(x=>String(x.id)===String(first.customer_id));
+   const name=c?.full_name||'Customer';
+   const mobile=c?.mobile||'';
+   const pending=list.filter(e=>Number(e.remaining_amount||0)>0);
+   const due=pending.reduce((s,e)=>s+Math.max(0,Number(e.total_due||0)-Number(e.paid_amount||0)),0);
+   const next=pending[0]||first;
+   return `<tr><td>${esc(first.loan_id||first.loan_account_id||'')}</td><td>${esc(name)}</td><td>${esc(mobile)}</td><td>${money(due)}</td><td>${date(next?.due_date)}</td><td><button class="btn" onclick='staffViewLoanEmis(${JSON.stringify(list).replace(/'/g,"&#39;")})'>View</button></td></tr>`;
+  });
+  tbody.innerHTML=rows.join('')||'<tr><td colspan="6">No EMI records</td></tr>';
+ };
+ window.staffViewLoanEmis=function(list){
+  if(!Array.isArray(list)||!list.length)return;
+  const c=(window.cache?.customers||[]).find(x=>String(x.id)===String(list[0].customer_id));
+  const name=c?.full_name||'Customer',mobile=c?.mobile||'';
+  const rows=list.map((e,i)=>{
+   const total=Number(e.total_due||Number(e.emi_amount||0)+Number(e.penalty||0));
+   const remaining=Math.max(0,total-Number(e.paid_amount||0));
+   const status=String(e.status||'').toLowerCase();
+   const action=remaining>0?`<button class="btn green" onclick="staffOpenEmiPayment(window.cache.emis.find(x=>String(x.id)===String('${esc(e.id)}'))||${JSON.stringify(e).replace(/'/g,"&#39;")})">Pay Now</button>`:'<span class="paid">Paid</span>';
+   return `<tr><td>${esc(e.emi_number)}</td><td>${date(e.due_date)}</td><td>${money(e.emi_amount)}</td><td>${money(e.penalty)}</td><td>${money(total)}</td><td>${money(e.paid_amount)}</td><td>${money(remaining)}</td><td class="${status==='paid'?'paid':status==='overdue'?'over':'pending'}">${esc(e.status)}</td><td>${action}</td></tr>`;
+  }).join('');
+  modal(`<h2>All EMI — ${esc(list[0].loan_id||'')}</h2><div style="margin-bottom:12px;color:#475467"><b>${esc(name)}</b> • ${esc(mobile)}</div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;min-width:760px"><thead><tr><th style="padding:8px">EMI No.</th><th style="padding:8px">Due Date</th><th style="padding:8px">EMI Amount</th><th style="padding:8px">Penalty</th><th style="padding:8px">Total Due</th><th style="padding:8px">Paid</th><th style="padding:8px">Remaining</th><th style="padding:8px">Status</th><th style="padding:8px">Action</th></tr></thead><tbody>${rows}</tbody></table></div><div style="text-align:right;margin-top:14px"><button class="btn gray" onclick="(${closeModal.toString()})()">Close</button></div>`);
+ };
+ setTimeout(()=>{if(typeof window.renderEmi==='function')window.renderEmi()},0);
+}
+setupEmiList();
 })();
