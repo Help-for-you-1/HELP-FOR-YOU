@@ -1,0 +1,11 @@
+{
+  "name": "HELP FOR YOU",
+  "short_name": "HELP FOR YOU",
+  "description": "HELP FOR YOU — Financial Services",
+  "start_url": "/HELP-FOR-YOU/",
+  "scope": "/HELP-FOR-YOU/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0754b8",
+  "icons": []
+}
