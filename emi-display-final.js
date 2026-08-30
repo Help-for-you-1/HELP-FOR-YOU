@@ -2,6 +2,18 @@
 'use strict';
 const escD=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const moneyD=v=>'₹'+Number(v||0).toFixed(2);
+window.adminEmiDirectPaid=async function(id){
+ try{
+  if(!id)return alert('EMI not found.');
+  const sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+  const r=await sb.rpc('hfy_mark_emi_paid',{p_emi_id:id});
+  if(r.error)throw r.error;
+  if(typeof window.closeM==='function')window.closeM();
+  if(typeof window.loadData==='function')await window.loadData();
+  else if(typeof window.loadEMI==='function')await window.loadEMI();
+  alert(r.data?.already_paid?'This EMI is already paid.':'EMI marked as Paid successfully.');
+ }catch(e){console.error(e);alert('EMI payment update failed: '+(e?.message||e));}
+};
 window.viewLoanEmi=async function(i){
  try{
   const loan=(window.__emiLoanRows||[])[i];if(!loan)return alert('Loan record not found.');
@@ -18,7 +30,7 @@ window.viewLoanEmi=async function(i){
    if(s!=='paid'&&remaining>0&&String(e.due_date||'').slice(0,10)<new Date().toISOString().slice(0,10))s='overdue';
    paidTotal+=pa;penalty+=p;if(s==='paid')paidCount++;else if(s==='overdue')overdue++;else pending++;
    const totalDueBalance=Math.max(0,loanTotal-paidTotal);
-   const action=s==='paid'?`<button class="btn red" onclick="hfyMarkEmiUnpaid('${escD(e.id)}')">Mark Unpaid</button>`:`<button class="btn green" onclick="hfyPay('${escD(e.id)}')">Pay Now</button>`;
+   const action=s==='paid'?`<button class="btn red" onclick="hfyMarkEmiUnpaid('${escD(e.id)}')">Mark Unpaid</button>`:`<button class="btn green" onclick="adminEmiDirectPaid('${escD(e.id)}')">Pay Now</button>`;
    return `<tr><td>${escD(e.emi_number)}</td><td>${escD(String(e.due_date||'').slice(0,10))}</td><td>${moneyD(a)}</td><td>${moneyD(p)}</td><td>${moneyD(totalDueBalance)}</td><td>${moneyD(pa)}</td><td>${moneyD(remaining)}</td><td class="${s==='paid'?'paid':s==='overdue'?'over':'pending'}">${escD(s)}</td><td>${action}</td></tr>`;
   }).join('');
   const balance=Math.max(0,loanTotal-paidTotal);
