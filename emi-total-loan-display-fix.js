@@ -1,0 +1,17 @@
+(()=>{
+'use strict';
+const dbTL=()=>window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+const moneyTL=v=>'₹'+Number(v||0).toFixed(2);
+const escTL=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let busyTL=false;
+async function fixTotalLoanOnly(){
+ if(busyTL)return;const body=document.getElementById('reRows');if(!body)return;
+ try{busyTL=true;const sb=dbTL();const [lr,cr,er]=await Promise.all([sb.from('loan_accounts').select('*').order('created_at',{ascending:false}),sb.from('customers').select('*'),sb.from('loan_emi_schedule').select('*').order('emi_number',{ascending:true})]);if(lr.error)throw lr.error;if(cr.error)throw cr.error;if(er.error)throw er.error;
+ const loans=lr.data||[],cs=cr.data||[],es=er.data||[];window.__emiLoanRows=loans;
+ body.innerHTML=loans.map((l,i)=>{const c=cs.find(x=>String(x.id)===String(l.customer_id));const rows=es.filter(e=>String(e.loan_account_id)===String(l.id)||String(e.loan_id)===String(l.loan_id));const scheduleTotal=rows.reduce((n,e)=>n+Number(e.emi_amount||0)+Number(e.penalty||0),0);const total=Number(l.total_repayment||0)>0?Number(l.total_repayment):scheduleTotal>0?scheduleTotal:Number(l.loan_amount||0);const overdue=rows.filter(e=>String(e.status||'').toLowerCase()!=='paid'&&Number(e.remaining_amount||Math.max(0,Number(e.emi_amount||0)+Number(e.penalty||0)-Number(e.paid_amount||0)))>0&&String(e.due_date||'')<new Date().toISOString().slice(0,10)).reduce((n,e)=>n+Math.max(0,Number(e.remaining_amount||Number(e.emi_amount||0)+Number(e.penalty||0)-Number(e.paid_amount||0))),0);const status=rows.length&&rows.every(e=>String(e.status||'').toLowerCase()==='paid'||Number(e.remaining_amount||0)<=0)?'paid':overdue>0?'overdue':'pending';return `<tr><td>${escTL(c?.full_name||'-')}</td><td>${escTL(l.loan_id||'-')}</td><td>${escTL(c?.mobile||'-')}</td><td>${moneyTL(l.loan_amount)}</td><td>${moneyTL(total)}</td><td>${escTL(l.start_date||'-')}</td><td>${moneyTL(overdue)}</td><td>${escTL(status)}</td><td><button class="btn blue" onclick="viewLoanEmi(${i})">View</button></td></tr>`}).join('')||'<tr><td colspan="9">No EMI / Repayment records.</td></tr>';
+ }catch(e){console.error('Total Loan display fix:',e)}finally{busyTL=false}
+}
+window.fixTotalLoanOnly=fixTotalLoanOnly;
+setTimeout(fixTotalLoanOnly,900);
+const r=document.getElementById('reRows');if(r)new MutationObserver(()=>setTimeout(fixTotalLoanOnly,0)).observe(r,{childList:true});
+})();
