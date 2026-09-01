@@ -2,88 +2,18 @@
 'use strict';
 const escA=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const dbA=()=>window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
-async function accountFor(db,a){
- const r=await db.from('loan_accounts').select('loan_id,start_date,customer_id,application_id').eq('application_id',a.id).order('id',{ascending:false}).limit(1).maybeSingle();
- return !r.error&&r.data?r.data:{};
-}
-async function customerLoanHistory(db,customerId,currentAccount){
- if(customerId==null)return [];
- const r=await db.from('loan_accounts').select('loan_id,start_date,application_id,id').eq('customer_id',customerId).order('start_date',{ascending:true}).order('id',{ascending:true});
- if(r.error)throw r.error;
- return r.data||[];
-}
+async function accountFor(db,a){const r=await db.from('loan_accounts').select('loan_id,start_date,customer_id,application_id').eq('application_id',a.id).order('id',{ascending:false}).limit(1).maybeSingle();return !r.error&&r.data?r.data:{};}
+async function customerLoanHistory(db,customerId){if(customerId==null)return [];const r=await db.from('loan_accounts').select('loan_id,start_date,application_id,id').eq('customer_id',customerId).order('start_date',{ascending:true}).order('id',{ascending:true});if(r.error)throw r.error;return r.data||[];}
 const loanWord=n=>({1:'First',2:'Second',3:'Third',4:'Fourth',5:'Fifth',6:'Sixth',7:'Seventh',8:'Eighth',9:'Ninth',10:'Tenth'}[n]||(n+'th'));
-window.hfyPrintAgreements=async function(){
- try{
-  const db=dbA();
-  const r=await db.from('loan_applications').select('*').eq('status','approved').order('id',{ascending:false});
-  if(r.error)throw r.error;
-  const rows=r.data||[];
-  let h='<h3>Approved Customers — Print Agreement</h3><div class="wrap"><table><thead><tr><th>Name</th><th>Mobile</th><th>Loan ID</th><th>Approved Amount</th><th>Sanction Date</th><th>Action</th></tr></thead><tbody>';
-  for(const x of rows){
-   const a=await accountFor(db,x);
-   h+=`<tr><td>${escA(x.full_name||x.name)}</td><td>${escA(x.mobile)}</td><td>${escA(a.loan_id||'')}</td><td>₹${Number(x.approved_amount||x.requested_amount||0).toFixed(2)}</td><td>${escA(a.start_date||x.sanction_date||'')}</td><td><button class="btn blue" onclick="hfyOpenAgreement(${Number(x.id)})">Print Agreement</button></td></tr>`;
-  }
-  h+='</tbody></table></div>';
-  window.openBox('Print Agreement',h);
- }catch(e){console.error(e);alert('Agreement list error: '+(e?.message||e));}
-};
-window.hfyOpenAgreement=async function(id){
- try{
-  const db=dbA();
-  const r=await db.from('loan_applications').select('*').eq('id',id).single();
-  if(r.error)throw r.error;
-  const x=r.data||{};
-  const ca=await accountFor(db,x);
-  const history=await customerLoanHistory(db,x.customer_id,ca);
-  let idx=history.findIndex(a=>Number(a.application_id)===Number(id));
-  if(idx<0 && ca.loan_id!=null)idx=history.findIndex(a=>String(a.loan_id)===String(ca.loan_id));
-  if(idx<0)idx=history.length;
-  const loanNo=idx+1;
-  const previousIds=history.slice(0,idx).map(a=>a.loan_id).filter(v=>v!==null&&v!==undefined&&String(v)!=='');
-  let c={};
-  if(x.customer_id!=null){
-   const cr=await db.from('customers').select('*').eq('id',x.customer_id).maybeSingle();
-   if(!cr.error&&cr.data)c=cr.data;
-  }
-  const data=Object.assign({},c,x,{loan_id:ca.loan_id??x.loan_id??'',sanction_date:ca.start_date||x.sanction_date||''});
-  const ord=loanWord(loanNo);
-  const fields=[
-   ['Loan Number','__loan_number'],['Current Loan ID','loan_id'],['Previous Loan IDs','__previous_ids'],
-   ['Full Name','full_name'],['Father / Mother Name','parent_name'],['Date of Birth','date_of_birth'],['Gender','gender'],['Mobile Number','mobile'],['Email','email'],
-   ['House / Door No.','house'],['Street / Locality','street'],['Village / Town','village'],['Post Office','post_office'],['District','district'],['State','state'],['PIN Code','pincode'],['Full Address','address'],
-   ['Loan Amount','approved_amount'],['Requested Loan Amount','requested_amount'],['Interest Rate %','interest_rate'],['Tenure Months','tenure_months'],['EMI Amount','emi_amount'],['Daily EMI','daily_emi'],['Total Interest','total_interest'],['Total Repayment','total_repayment'],
-   ['Loan Purpose','loan_purpose'],['Occupation / Business','occupation'],['Monthly Income','monthly_income'],['Apply Date','applied_at'],['Sanction Date','sanction_date'],
-   ['PAN Number','pan_number'],['Aadhaar Number','aadhaar_number'],['Bank Account Number','bank_account'],['IFSC Code','ifsc_code'],['KYC Status','kyc_status'],['Bank Verification','bank_verification'],['Fraud Check','fraud_check'],['Admin Remarks','admin_remarks']
-  ];
-  let h=`<p><b>Current Loan:</b> ${ord} Loan &nbsp; | &nbsp; <b>Previous Loan IDs:</b> ${escA(previousIds.length?previousIds.join(', '):'None')}</p><p>Edit agreement details before printing. Changes here are for the printable agreement only.</p><div class="form">`;
-  fields.forEach(([label,key])=>{
-   let v=key==='__loan_number'?ord+' Loan':key==='__previous_ids'?(previousIds.length?previousIds.join(', '):'None'):data[key]??'';
-   h+=`<label>${escA(label)}<input id="agr_${escA(key)}" type="text" value="${escA(v)}"></label>`;
-  });
-  h+='</div><div class="actions"><button class="btn blue" onclick="hfyPrintAgreementWindow()">🖨️ Print Agreement</button></div>';
-  window.hfyAgreementContext={loanNo,previousIds,currentLoanId:ca.loan_id||''};
-  window.openBox('Loan Agreement — Approved Customer',h);
- }catch(e){console.error(e);alert('Agreement error: '+(e?.message||e));}
-};
-window.hfyPrintAgreementWindow=function(){
- const keys=['__loan_number','loan_id','__previous_ids','full_name','parent_name','date_of_birth','gender','mobile','email','house','street','village','post_office','district','state','pincode','address','approved_amount','requested_amount','interest_rate','tenure_months','emi_amount','daily_emi','total_interest','total_repayment','loan_purpose','occupation','monthly_income','applied_at','sanction_date','pan_number','aadhaar_number','bank_account','ifsc_code','kyc_status','bank_verification','fraud_check','admin_remarks'];
- const labels=['Loan Number','Current Loan ID','Previous Loan IDs','Full Name','Father / Mother Name','Date of Birth','Gender','Mobile Number','Email','House / Door No.','Street / Locality','Village / Town','Post Office','District','State','PIN Code','Full Address','Approved Loan Amount','Requested Loan Amount','Interest Rate %','Tenure Months','EMI Amount','Daily EMI','Total Interest','Total Repayment','Loan Purpose','Occupation / Business','Monthly Income','Apply Date','Sanction Date','PAN Number','Aadhaar Number','Bank Account Number','IFSC Code','KYC Status','Bank Verification','Fraud Check','Admin Remarks'];
- let rows='';
- keys.forEach((k,i)=>{const el=document.getElementById('agr_'+k);rows+=`<tr><th>${escA(labels[i])}</th><td>${escA(el?el.value:'')}</td></tr>`});
- const w=window.open('','_blank');
- if(!w)return alert('Please allow pop-ups to print the agreement.');
- w.document.write(`<!doctype html><html><head><title>HELP FOR YOU - Loan Agreement</title><style>body{font-family:Arial;padding:30px;color:#111}h1,h2{text-align:center;margin:6px 0}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:8px;text-align:left;vertical-align:top}th{width:35%;background:#f5f5f5}.sign{margin-top:80px;display:flex;justify-content:space-between;gap:40px}.line{border-top:1px solid #111;width:220px;text-align:center;padding-top:8px}@media print{body{padding:15px}}</style></head><body><h1>HELP FOR YOU</h1><h2>LOAN AGREEMENT</h2><h3 style="text-align:center">${escA(document.getElementById('agr___loan_number')?.value||'Loan Agreement')}</h3><table>${rows}</table><h3>Borrower Declaration</h3><p>I confirm that the information stated above is correct and agree to repay this loan according to the applicable repayment schedule and agreed terms.</p><div class="sign"><div class="line">Borrower Signature</div><div class="line">Authorised Officer / Admin</div></div><script>window.onload=()=>window.print()<\/script></body></html>`);
- w.document.close();
-};
-const oldShow=window.show;
-window.show=function(id,el){
- if(typeof oldShow==='function')oldShow(id,el);
- if(id==='reports')setTimeout(()=>{
-  const p=document.getElementById('reports');
-  if(p&&!document.getElementById('agreementBtn')){
-   const b=document.createElement('button');b.id='agreementBtn';b.className='btn blue';b.textContent='🖨️ Print Agreement';b.onclick=window.hfyPrintAgreements;p.appendChild(b);
-  }
- },100);
-};
+const firstVal=(...vs)=>{for(const v of vs){if(v!==undefined&&v!==null&&String(v).trim()!=='')return v;}return '';};
+window.hfyPrintAgreements=async function(){try{const db=dbA();const r=await db.from('loan_applications').select('*').eq('status','approved').order('id',{ascending:false});if(r.error)throw r.error;const rows=r.data||[];let h='<h3>Approved Customers — Print Agreement</h3><div class="wrap"><table><thead><tr><th>Name</th><th>Mobile</th><th>Loan ID</th><th>Approved Amount</th><th>Sanction Date</th><th>Action</th></tr></thead><tbody>';for(const x of rows){const a=await accountFor(db,x);h+=`<tr><td>${escA(x.full_name||x.name)}</td><td>${escA(x.mobile)}</td><td>${escA(a.loan_id||x.loan_id||'')}</td><td>₹${Number(x.approved_amount||x.requested_amount||0).toFixed(2)}</td><td>${escA(a.start_date||x.sanction_date||'')}</td><td><button class="btn blue" onclick="hfyOpenAgreement(${Number(x.id)})">Print Agreement</button></td></tr>`;}h+='</tbody></table></div>';window.openBox('Print Agreement',h);}catch(e){console.error(e);alert('Agreement list error: '+(e?.message||e));}};
+window.hfyOpenAgreement=async function(id){try{const db=dbA();const r=await db.from('loan_applications').select('*').eq('id',id).single();if(r.error)throw r.error;const x=r.data||{};const ca=await accountFor(db,x);const history=await customerLoanHistory(db,x.customer_id);let idx=history.findIndex(a=>Number(a.application_id)===Number(id));if(idx<0&&ca.loan_id!=null)idx=history.findIndex(a=>String(a.loan_id)===String(ca.loan_id));if(idx<0)idx=history.length;const loanNo=idx+1;const previousIds=history.slice(0,idx).map(a=>a.loan_id).filter(v=>v!==null&&v!==undefined&&String(v)!=='');
+ let c={};if(x.customer_id!=null){const cr=await db.from('customers').select('*').eq('id',x.customer_id).maybeSingle();if(!cr.error&&cr.data)c=cr.data;}
+ // Recover profile/address fields from the current application and any older application for the same customer.
+ let profile={};if(x.customer_id!=null){const pr=await db.from('loan_applications').select('*').eq('customer_id',x.customer_id).order('id',{ascending:false});if(!pr.error)for(const a of (pr.data||[]).reverse())profile=Object.fromEntries(Object.entries(a).filter(([k,v])=>v!==null&&v!==undefined&&String(v).trim()!==''));}
+ const data=Object.assign({},c,profile,x);data.parent_name=firstVal(x.parent_name,profile.parent_name,c.parent_name);data.house=firstVal(x.house,profile.house,c.house);data.street=firstVal(x.street,profile.street,c.street);data.village=firstVal(x.village,profile.village,c.village,c.city);data.post_office=firstVal(x.post_office,profile.post_office,c.post_office);data.district=firstVal(x.district,profile.district,c.district);data.state=firstVal(x.state,profile.state,c.state);data.pincode=firstVal(x.pincode,profile.pincode,c.pincode);data.address=firstVal(x.address,profile.address,c.address);data.email=firstVal(x.email,profile.email,c.email);data.date_of_birth=firstVal(x.date_of_birth,profile.date_of_birth,c.date_of_birth);data.gender=firstVal(x.gender,profile.gender,c.gender);data.pan_number=firstVal(x.pan_number,profile.pan_number,c.pan_number);data.aadhaar_number=firstVal(x.aadhaar_number,profile.aadhaar_number,c.aadhaar_number);data.bank_account=firstVal(x.bank_account,profile.bank_account,c.bank_account);data.ifsc_code=firstVal(x.ifsc_code,profile.ifsc_code,c.ifsc_code);data.occupation=firstVal(x.occupation,profile.occupation,c.occupation);data.monthly_income=firstVal(x.monthly_income,profile.monthly_income,c.monthly_income);data.loan_purpose=firstVal(x.loan_purpose,profile.loan_purpose);data.applied_at=firstVal(x.applied_at,profile.applied_at,x.created_at);data.sanction_date=ca.start_date||x.sanction_date||'';data.loan_id=ca.loan_id??x.loan_id??'';
+ const ord=loanWord(loanNo);const fields=[['Loan Number','__loan_number'],['Current Loan ID','loan_id'],['Previous Loan IDs','__previous_ids'],['Full Name','full_name'],['Father / Mother Name','parent_name'],['Date of Birth','date_of_birth'],['Gender','gender'],['Mobile Number','mobile'],['Email','email'],['House / Door No.','house'],['Street / Locality','street'],['Village / Town','village'],['Post Office','post_office'],['District','district'],['State','state'],['PIN Code','pincode'],['Full Address','address'],['Loan Amount','approved_amount'],['Requested Loan Amount','requested_amount'],['Interest Rate %','interest_rate'],['Tenure Months','tenure_months'],['EMI Amount','emi_amount'],['Daily EMI','daily_emi'],['Total Interest','total_interest'],['Total Repayment','total_repayment'],['Loan Purpose','loan_purpose'],['Occupation / Business','occupation'],['Monthly Income','monthly_income'],['Apply Date','applied_at'],['Sanction Date','sanction_date'],['PAN Number','pan_number'],['Aadhaar Number','aadhaar_number'],['Bank Account Number','bank_account'],['IFSC Code','ifsc_code'],['KYC Status','kyc_status'],['Bank Verification','bank_verification'],['Fraud Check','fraud_check'],['Admin Remarks','admin_remarks']];
+ let h=`<p><b>Current Loan:</b> ${ord} Loan &nbsp; | &nbsp; <b>Previous Loan IDs:</b> ${escA(previousIds.length?previousIds.join(', '):'None')}</p><p>Edit agreement details before printing. Changes here are for the printable agreement only.</p><div class="form">`;fields.forEach(([label,key])=>{let v=key==='__loan_number'?ord+' Loan':key==='__previous_ids'?(previousIds.length?previousIds.join(', '):'None'):data[key]??'';if((key==='applied_at'||key==='sanction_date')&&String(v).includes('T'))v=String(v).slice(0,10);h+=`<label>${escA(label)}<input id="agr_${escA(key)}" type="text" value="${escA(v)}"></label>`;});h+='</div><div class="actions"><button class="btn blue" onclick="hfyPrintAgreementWindow()">🖨️ Print Agreement</button></div>';window.hfyAgreementContext={loanNo,previousIds,currentLoanId:ca.loan_id||''};window.openBox('Loan Agreement — Approved Customer',h);}catch(e){console.error(e);alert('Agreement error: '+(e?.message||e));}};
+window.hfyPrintAgreementWindow=function(){const keys=['__loan_number','loan_id','__previous_ids','full_name','parent_name','date_of_birth','gender','mobile','email','house','street','village','post_office','district','state','pincode','address','approved_amount','requested_amount','interest_rate','tenure_months','emi_amount','daily_emi','total_interest','total_repayment','loan_purpose','occupation','monthly_income','applied_at','sanction_date','pan_number','aadhaar_number','bank_account','ifsc_code','kyc_status','bank_verification','fraud_check','admin_remarks'];const labels=['Loan Number','Current Loan ID','Previous Loan IDs','Full Name','Father / Mother Name','Date of Birth','Gender','Mobile Number','Email','House / Door No.','Street / Locality','Village / Town','Post Office','District','State','PIN Code','Full Address','Approved Loan Amount','Requested Loan Amount','Interest Rate %','Tenure Months','EMI Amount','Daily EMI','Total Interest','Total Repayment','Loan Purpose','Occupation / Business','Monthly Income','Apply Date','Sanction Date','PAN Number','Aadhaar Number','Bank Account Number','IFSC Code','KYC Status','Bank Verification','Fraud Check','Admin Remarks'];let rows='';keys.forEach((k,i)=>{const el=document.getElementById('agr_'+k);rows+=`<tr><th>${escA(labels[i])}</th><td>${escA(el?el.value:'')}</td></tr>`});const w=window.open('','_blank');if(!w)return alert('Please allow pop-ups to print the agreement.');w.document.write(`<!doctype html><html><head><title>HELP FOR YOU - Loan Agreement</title><style>body{font-family:Arial;padding:30px;color:#111}h1,h2{text-align:center;margin:6px 0}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:8px;text-align:left;vertical-align:top}th{width:35%;background:#f5f5f5}.sign{margin-top:80px;display:flex;justify-content:space-between;gap:40px}.line{border-top:1px solid #111;width:220px;text-align:center;padding-top:8px}@media print{body{padding:15px}}</style></head><body><h1>HELP FOR YOU</h1><h2>LOAN AGREEMENT</h2><h3 style="text-align:center">${escA(document.getElementById('agr___loan_number')?.value||'Loan Agreement')}</h3><table>${rows}</table><h3>Borrower Declaration</h3><p>I confirm that the information stated above is correct and agree to repay this loan according to the applicable repayment schedule and agreed terms.</p><div class="sign"><div class="line">Borrower Signature</div><div class="line">Authorised Officer / Admin</div></div><script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();};
+const oldShow=window.show;window.show=function(id,el){if(typeof oldShow==='function')oldShow(id,el);if(id==='reports')setTimeout(()=>{const p=document.getElementById('reports');if(p&&!document.getElementById('agreementBtn')){const b=document.createElement('button');b.id='agreementBtn';b.className='btn blue';b.textContent='🖨️ Print Agreement';b.onclick=window.hfyPrintAgreements;p.appendChild(b);}},100);};
 })();
