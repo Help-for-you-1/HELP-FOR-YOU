@@ -15,10 +15,11 @@ function installPrintLogo(){
     let s=String(html||'');
     if(/<body\b/i.test(s)&&!s.includes('hfy-print-logo')&&!s.includes('hfy-noc-logo')){
      const isAgreement=/SANCTION-CUM-LOAN AGREEMENT|LOAN AGREEMENT/i.test(s);
+     const isStatement=/CUSTOMER REPAYMENT STATEMENT|CUSTOMER LOAN REPAYMENT STATEMENT/i.test(s);
      if(isAgreement){
       s=s.replace(/<style>/i,'<style>.header{position:relative;min-height:126px!important;padding-top:18px!important;padding-bottom:14px!important}.header .brand,.header .tag{position:relative;z-index:1}.header .docmeta{position:relative;z-index:1;padding-top:2px}.header #hfy-print-logo{top:7px!important}</style>');
       s=s.replace(/<div class="header">/i,'<div class="header">'+agreementLogo());
-     }else{
+     }else if(!isStatement){
       s=s.replace(/<body([^>]*)>/i,'<body$1>'+block());
      }
     }
