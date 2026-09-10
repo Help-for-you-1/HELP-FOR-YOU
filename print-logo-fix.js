@@ -14,7 +14,7 @@ function installNoc(){
      w.document.write=function(html){
       let s=String(html||'');
       if(/NO\s+OBJECTION\s+CERTIFICATE/i.test(s)&&!s.includes('hfy-noc-logo')){
-       const block='<div id="hfy-noc-logo" style="position:absolute;left:28px;top:16px;width:64px;height:64px;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1"><img src="'+logo+'" alt="HELP FOR YOU" style="width:64px;height:64px;object-fit:contain;display:block"></div>';
+       const block='<div id="hfy-noc-logo" style="position:absolute;left:28px;top:10px;width:90px;height:90px;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1"><img src="'+logo+'" alt="HELP FOR YOU" style="width:90px;height:90px;object-fit:contain;display:block"></div>';
        s=s.replace(/<div class="cert">/i,'<div class="cert" style="position:relative">'+block);
       }
       return nativeWrite(s);
