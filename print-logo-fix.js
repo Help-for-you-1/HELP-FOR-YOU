@@ -1,35 +1,27 @@
 (()=>{
 'use strict';
 const logo='hfy-logo.svg';
-function installNoc(){
- const fn=window.hfyPrintNOC;
- if(typeof fn!=='function'||fn.__hfyNocLogo)return false;
- const wrapped=function(){
-  const nativeOpen=window.open;
-  window.open=function(...args){
-   const w=nativeOpen.apply(window,args);
-   if(w){
-    try{
-     const nativeWrite=w.document.write.bind(w.document);
-     w.document.write=function(html){
-      let s=String(html||'');
-      if(/NO\s+OBJECTION\s+CERTIFICATE/i.test(s)&&!s.includes('hfy-noc-logo')){
-       const block='<div id="hfy-noc-logo" style="position:absolute;left:28px;top:10px;width:90px;height:90px;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1"><img src="'+logo+'" alt="HELP FOR YOU" style="width:90px;height:90px;object-fit:contain;display:block"></div>';
-       s=s.replace(/<div class="cert">/i,'<div class="cert" style="position:relative">'+block);
-      }
-      return nativeWrite(s);
-     };
-    }catch(e){}
-   }
-   return w;
-  };
-  try{return fn.apply(this,arguments);}finally{window.open=nativeOpen;}
+const block=()=>'<div id="hfy-print-logo" style="position:absolute;left:24px;top:18px;width:90px;height:90px;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:9999"><img src="'+logo+'" alt="HELP FOR YOU" style="width:90px;height:90px;object-fit:contain;display:block"></div>';
+function installPrintLogo(){
+ if(window.__hfyPrintLogoInstalled)return true;
+ const nativeOpen=window.open;
+ window.open=function(...args){
+  const w=nativeOpen.apply(window,args);
+  if(!w)return w;
+  try{
+   const nativeWrite=w.document.write.bind(w.document);
+   w.document.write=function(html){
+    let s=String(html||'');
+    if(/<body\b/i.test(s)&&!s.includes('hfy-print-logo')&&!s.includes('hfy-noc-logo')){
+     s=s.replace(/<body([^>]*)>/i,'<body$1>'+block());
+    }
+    return nativeWrite(s);
+   };
+  }catch(e){}
+  return w;
  };
- wrapped.__hfyNocLogo=true;
- window.hfyPrintNOC=wrapped;
+ window.__hfyPrintLogoInstalled=true;
  return true;
 }
-let tries=0;
-const timer=setInterval(()=>{if(installNoc()||++tries>200)clearInterval(timer)},100);
-installNoc();
+installPrintLogo();
 })();
