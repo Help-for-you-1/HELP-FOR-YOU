@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const logoFix=document.createElement('script');logoFix.src='print-logo-fix.js?v=20260910-2';document.head.appendChild(logoFix);
+const logoFix=document.createElement('script');logoFix.src='print-logo-fix.js?v=20260910-3';document.head.appendChild(logoFix);
 const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const dateOnly=v=>v?String(v).slice(0,10):'';
 const db=()=>window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
