@@ -1,49 +1,40 @@
 (()=>{
 'use strict';
+const sbPay=()=>window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+const escPay=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const moneyPay=v=>'₹'+Number(v||0).toFixed(2);
 async function hfyAmountPay(id){
  try{
   if(!id)return alert('EMI not found.');
-  const sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
-  const one=await sb.from('loan_emi_schedule').select('*').eq('id',id).maybeSingle();
-  if(one.error)throw one.error;
-  if(!one.data)return alert('EMI not found.');
-  if(String(one.data.status||'').toLowerCase()==='paid')return alert('This EMI is already paid.');
-  const raw=prompt('Enter payment amount',Number(one.data.remaining_amount||one.data.total_due||one.data.emi_amount||0).toFixed(2));
-  if(raw===null)return;
-  const amount=Number(String(raw).replace(/,/g,''));
-  if(!Number.isFinite(amount)||amount<=0)return alert('Please enter a valid payment amount.');
-  const all=await sb.from('loan_emi_schedule').select('*').eq('loan_account_id',one.data.loan_account_id).order('emi_number',{ascending:true});
-  if(all.error)throw all.error;
-  const unpaid=(all.data||[]).filter(e=>String(e.status||'').toLowerCase()!=='paid'&&Math.max(0,Number(e.remaining_amount??(Number(e.total_due||0)-Number(e.paid_amount||0))||e.emi_amount||0))>0);
-  let left=amount,covered=[];
-  for(const e of unpaid){
-   const due=Math.max(0,Number(e.remaining_amount??(Number(e.total_due||0)-Number(e.paid_amount||0))||e.emi_amount||0));
-   if(left+0.000001>=due){covered.push(e);left=Number((left-due).toFixed(2));}else break;
-  }
-  if(!covered.length){
-   const e=unpaid[0],due=Math.max(0,Number(e.remaining_amount??(Number(e.total_due||0)-Number(e.paid_amount||0))||e.emi_amount||0));
-   const paid=Number(amount.toFixed(2)),rem=Number(Math.max(0,due-paid).toFixed(2));
-   const u=await sb.from('loan_emi_schedule').update({paid_amount:paid,remaining_amount:rem,status:rem<=0?'paid':'pending'}).eq('id',e.id);
-   if(u.error)throw u.error;
-  }else{
-   for(let i=0;i<covered.length;i++){
-    const u=await sb.from('loan_emi_schedule').update({paid_amount:i===0?Number(amount.toFixed(2)):0,remaining_amount:0,status:'paid'}).eq('id',covered[i].id);
-    if(u.error)throw u.error;
-   }
-  }
-  if(typeof window.closeM==='function')window.closeM();
-  if(typeof window.loadData==='function')await window.loadData();
-  if(typeof window.loadEMI==='function')await window.loadEMI();
-  if(typeof window.render==='function')await window.render();
-  alert('Payment recorded successfully.');
- }catch(e){console.error(e);alert('Payment update failed: '+(e?.message||e));}
+  const sb=sbPay();
+  const q=await sb.from('loan_emi_schedule').select('*').eq('id',id).maybeSingle();
+  if(q.error)throw q.error;
+  const e=q.data;if(!e)return alert('EMI not found.');
+  const total=Number(e.total_due||Number(e.emi_amount||0)+Number(e.penalty||0));
+  const remaining=Math.max(0,total-Number(e.paid_amount||0));
+  if(remaining<=0||String(e.status||'').toLowerCase()==='paid')return alert('This EMI is already paid.');
+  let customer='-';
+  if(e.customer_id){const c=await sb.from('customers').select('full_name,mobile').eq('id',e.customer_id).maybeSingle();if(c.error)throw c.error;customer=c.data?.full_name||'-';}
+  window.__hfyPaymentEmi=e;
+  window.openBox('UPI Payment',`<div class="form"><div class="full"><b>Customer:</b> ${escPay(customer)} &nbsp; <b>EMI:</b> ${escPay(e.emi_number)}</div><div class="full"><b>Remaining Amount:</b> ${moneyPay(remaining)}</div><label>Payment Method<select id="hfyPaymentType"><option value="upi" selected>UPI</option></select></label><label>Amount<input id="hfyPaymentAmount" type="number" min="1" step="0.01" value="${remaining.toFixed(2)}"></label><div class="full"><p><b>UPI ID:</b> Q526188998@ybl</p><button class="btn green" onclick="hfyStartUPIPayment()">Pay Now with UPI</button></div></div>`);
+ }catch(e){console.error(e);alert('Payment screen error: '+(e?.message||e));}
 }
+window.hfyStartUPIPayment=function(){
+ const e=window.__hfyPaymentEmi;if(!e)return;
+ const amount=Number(document.getElementById('hfyPaymentAmount')?.value||0);
+ const total=Number(e.total_due||Number(e.emi_amount||0)+Number(e.penalty||0));
+ const remaining=Math.max(0,total-Number(e.paid_amount||0));
+ if(!Number.isFinite(amount)||amount<=0||amount>remaining)return alert('Enter a valid payment amount.');
+ const upi='upi://pay?pa=Q526188998@ybl&pn=HELP%20FOR%20YOU&am='+encodeURIComponent(amount.toFixed(2))+'&cu=INR&tn='+encodeURIComponent('EMI '+(e.emi_number||''));
+ window.location.href=upi;
+};
+window.staffConfirmPayment=window.staffConfirmPayment||function(){alert('Payment is not marked Paid automatically. Admin must verify receipt and mark the EMI as Paid.');};
 window.hfyPay=hfyAmountPay;window.emiFinalPaid=hfyAmountPay;window.emi30Paid=hfyAmountPay;window.paid=hfyAmountPay;
 window.hfyMarkEmiUnpaid=async function(id){
  if(!id)return alert('EMI not found.');
  if(!confirm('Are you sure you want to mark this EMI as Unpaid? Any recorded payment linked to this EMI will be reversed.'))return;
  try{
-  const sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+  const sb=sbPay();
   const r=await sb.rpc('hfy_mark_emi_unpaid',{p_emi_id:id});
   if(r.error)throw r.error;
   if(!r.data?.success)throw new Error('Mark Unpaid was not completed.');
@@ -54,5 +45,4 @@ window.hfyMarkEmiUnpaid=async function(id){
   alert('EMI marked as Unpaid successfully.');
  }catch(e){console.error(e);alert('Mark Unpaid error: '+(e?.message||e));}
 };
-setTimeout(()=>{window.hfyPay=hfyAmountPay;window.emiFinalPaid=hfyAmountPay;window.emi30Paid=hfyAmountPay;window.paid=hfyAmountPay;},0);
 })();
