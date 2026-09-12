@@ -40,8 +40,19 @@ async function hfyAmountPay(id){
 }
 window.hfyPay=hfyAmountPay;window.emiFinalPaid=hfyAmountPay;window.emi30Paid=hfyAmountPay;window.paid=hfyAmountPay;
 window.hfyMarkEmiUnpaid=async function(id){
+ if(!id)return alert('EMI not found.');
  if(!confirm('Are you sure you want to mark this EMI as Unpaid? Any recorded payment linked to this EMI will be reversed.'))return;
- try{const sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);const r=await sb.rpc('hfy_mark_emi_unpaid',{p_emi_id:id});if(r.error)throw r.error;if(typeof window.closeM==='function')window.closeM();if(typeof window.loadData==='function')await window.loadData();alert('EMI marked as Unpaid successfully.')}catch(e){console.error(e);alert('Mark Unpaid error: '+(e?.message||e));}
+ try{
+  const sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+  const r=await sb.rpc('hfy_mark_emi_unpaid',{p_emi_id:id});
+  if(r.error)throw r.error;
+  if(!r.data?.success)throw new Error('Mark Unpaid was not completed.');
+  if(typeof window.closeM==='function')window.closeM();
+  if(typeof window.loadData==='function')await window.loadData();
+  if(typeof window.loadEMI==='function')await window.loadEMI();
+  if(typeof window.render==='function')await window.render();
+  alert('EMI marked as Unpaid successfully.');
+ }catch(e){console.error(e);alert('Mark Unpaid error: '+(e?.message||e));}
 };
 setTimeout(()=>{window.hfyPay=hfyAmountPay;window.emiFinalPaid=hfyAmountPay;window.emi30Paid=hfyAmountPay;window.paid=hfyAmountPay;},0);
 })();
