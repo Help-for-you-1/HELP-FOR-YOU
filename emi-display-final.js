@@ -35,7 +35,7 @@ window.viewLoanEmi=async function(i){
    let s=String(e.status||'pending').toLowerCase();
    if(s!=='paid'&&remaining>0&&String(e.due_date||'').slice(0,10)<new Date().toISOString().slice(0,10))s='overdue';
    loanTotal+=emiDue;paidTotal+=pa;penalty+=p;if(s==='paid')paidCount++;else if(s==='overdue')overdue++;else pending++;
-   const action=s==='paid'?`<button class="btn red" onclick="hfyMarkEmiUnpaid('${escD(e.id)}')">Mark Unpaid</button>`:`<button class="btn green" onclick="adminEmiDirectPaid('${escD(e.id)}')">Pay Now</button>`;
+   const action=s==='paid'?`<button class="btn red" onclick="hfyMarkEmiUnpaid('${escD(e.id)}')">Mark Unpaid</button>`:`<button class="btn green" onclick="hfyPay('${escD(e.id)}')">Pay Now</button>`;
    return `<tr><td>${escD(e.emi_number)}</td><td>${escD(String(e.due_date||'').slice(0,10))}</td><td>${moneyD(a)}</td><td>${moneyD(p)}</td><td>${moneyD(emiDue)}</td><td>${moneyD(pa)}</td><td>${moneyD(remaining)}</td><td class="${s==='paid'?'paid':s==='overdue'?'over':'pending'}">${escD(s)}</td><td>${action}</td></tr>`;
   }).join('');
   const balance=Math.max(0,loanTotal-paidTotal);
