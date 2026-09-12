@@ -5,13 +5,18 @@ const renderApplicationIds=async()=>{
     const rows=document.getElementById('appsRows');
     if(!rows||!window.supabase||!window.HFY_SUPABASE_URL||!window.HFY_SUPABASE_PUBLISHABLE_KEY)return;
     const db=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
-    const r=await db.from('loan_applications').select('id,application_id').order('created_at',{ascending:false});
+    const r=await db.from('loan_applications').select('id').order('created_at',{ascending:false});
     if(r.error)throw r.error;
-    [...rows.querySelectorAll('tr')].forEach((tr,i)=>{
+    const trs=[...rows.querySelectorAll('tr')];
+    trs.forEach((tr,i)=>{
       if(!tr.querySelector('td'))return;
       const app=r.data?.[i];
+      if(!app)return;
+      const existing=tr.querySelector('td[data-hfy-application-id]');
+      if(existing){existing.textContent=String(app.id);return;}
       const td=document.createElement('td');
-      td.textContent=app?.application_id||app?.id||'-';
+      td.setAttribute('data-hfy-application-id','1');
+      td.textContent=String(app.id);
       tr.insertBefore(td,tr.firstElementChild);
     });
   }catch(e){console.error('Application ID display error:',e)}
