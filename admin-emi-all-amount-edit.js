@@ -5,7 +5,7 @@
 (function(){
 'use strict';
 function C(){return window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY)}
-function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function E(v){return String(v==null?'':v).replace(/[&<>\"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]})}
 function N(v){var n=Number(v);return Number.isFinite(n)?n:0}
 window.hfyEditEmi=async function(id){
  try{
@@ -40,8 +40,9 @@ window.hfySaveEmi=async function(id){
   var total=a+p;if(pa>total)pa=total;
   if(pa>=total && total>0)s='paid';else if(pa>0)s='partial';
   var payload={due_date:d,emi_amount:a,penalty:p,paid_amount:pa,status:s};
-  var r=await C().from('loan_emi_schedule').update(payload).eq('id',id);
+  var r=await C().from('loan_emi_schedule').update(payload).eq('id',id).select('id').maybeSingle();
   if(r.error)throw r.error;
+  if(!r.data)throw new Error('EMI was not updated. Please check Admin login/session permissions.');
   if(typeof window.closeM==='function')window.closeM();
   if(typeof window.loadData==='function')await window.loadData();
   if(typeof window.loadEMI==='function')await window.loadEMI();
