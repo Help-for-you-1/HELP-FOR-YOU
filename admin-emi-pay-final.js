@@ -1,6 +1,7 @@
 /* HELP FOR YOU — ADMIN EMI PAYMENT FLOW FINAL
    Admin EMI only: Pay Now opens an amount screen first.
-   It does NOT mark the EMI paid on button click.
+   Cash and UPI both record directly inside Admin Portal.
+   No external UPI-app redirect is used.
 */
 (function(){
 'use strict';
@@ -37,19 +38,20 @@ window.hfyAdminConfirmPayFinal=async function(){
  const input=document.getElementById('hfyAdminPayFinalAmount');
  const method=document.getElementById('hfyAdminPayFinalMethod');
  const amount=Number(input?.value||0);
+ const paymentMethod=method?.value==='UPI'?'UPI':'Cash';
  if(!Number.isFinite(amount)||amount<=0)return alert('Enter a valid payment amount.');
  if(amount>x.remaining)return alert('Payment amount cannot be greater than this EMI remaining amount.');
- if(!confirm('Confirm payment of '+money(amount)+'?'))return;
+ if(!confirm('Confirm '+paymentMethod+' payment of '+money(amount)+'?'))return;
  try{
   const s=sb();
-  const r=await s.rpc('hfy_add_payment',{p_emi_id:x.id,p_amount:amount,p_payment_date:new Date().toISOString().slice(0,10),p_payment_type:method?.value||'Cash',p_remarks:'Admin EMI payment',p_transaction_id:null});
+  const r=await s.rpc('hfy_add_payment',{p_emi_id:x.id,p_amount:amount,p_payment_date:new Date().toISOString().slice(0,10),p_payment_type:paymentMethod,p_remarks:'Admin EMI payment - '+paymentMethod,p_transaction_id:null});
   if(r.error)throw r.error;
   if(r.data && r.data.success===false)throw new Error(r.data.message||'Payment was not completed.');
   if(typeof closeM==='function')closeM();
   if(typeof loadData==='function')await loadData();
   if(typeof loadEMI==='function')await loadEMI();
   if(typeof render==='function')await render();
-  alert('Payment recorded successfully: '+money(amount));
+  alert(paymentMethod+' payment recorded successfully: '+money(amount));
  }catch(err){console.error(err);alert('Payment failed: '+(err?.message||err));}
 };
 window.hfyPay=window.hfyAdminPayFinal;
