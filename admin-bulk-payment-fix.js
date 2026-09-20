@@ -27,7 +27,9 @@ function addBulkButton(){
   const table=mb.querySelector('table'); if(!table)return;
   const first=table.querySelector('tbody tr');
   const payBtn=first?.querySelector('button[onclick*="hfyPay"]');
-  const m=payBtn?.getAttribute('onclick')?.match(/hfyPay\\('([^']+)'/i); const emiId=m?.[1];
+  const onclick=payBtn?.getAttribute('onclick')||'';
+  const m=onclick.match(/hfyPay\(\s*['"]([^'"]+)['"]\s*\)/i);
+  const emiId=m?.[1];
   if(!emiId)return;
   const box=document.createElement('div'); box.id='hfyBulkBox'; box.className='full';
   box.style='margin:12px 0;padding:12px;border:1px solid #d7e0ea;border-radius:10px;background:#f7f9fc';
