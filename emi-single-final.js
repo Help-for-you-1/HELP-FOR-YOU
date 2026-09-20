@@ -80,6 +80,6 @@ window.hfyMarkEmiUnpaid=async function(id){
 };
 window.emiFinalPaid=window.hfyPay;window.emi30Paid=window.hfyPay;window.paid=window.hfyPay;
 const oldShow=window.show;window.show=(id,b)=>{if(oldShow)oldShow(id,b);if(id==='repay')setTimeout(refreshList,150);};
-const keepClosedOut=()=>{const body=document.getElementById('reRows');if(!body)return;const rows=[...body.querySelectorAll('tr')];rows.forEach(r=>{const t=(r.innerText||'').toLowerCase();if(t.includes('closed')&&t.includes('100005'))r.remove();});};
-setTimeout(refreshList,800);setTimeout(keepClosedOut,1600);setTimeout(keepClosedOut,3000);
+const keepClosedOut=async()=>{try{const s=db(),q=await s.from('loan_accounts').select('loan_id').eq('loan_status','completed');if(q.error)throw q.error;const closed=new Set((q.data||[]).map(x=>String(x.loan_id)));const body=document.getElementById('reRows');if(!body)return;[...body.querySelectorAll('tr')].forEach(r=>{const cells=r.querySelectorAll('td');if(cells.length>1&&closed.has(String((cells[1].innerText||'').trim())))r.remove();});}catch(e){console.error('Closed loan filter:',e);}};
+setTimeout(refreshList,800);setTimeout(keepClosedOut,1600);setTimeout(keepClosedOut,3000);setInterval(keepClosedOut,5000);
 })();
