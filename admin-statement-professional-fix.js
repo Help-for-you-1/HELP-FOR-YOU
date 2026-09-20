@@ -25,7 +25,7 @@ async function openProfessionalStatement(cid,lid){
   const sanction=first(l.sanction_date,l.start_date,l.disbursement_date,a.sanction_date,a.disbursement_date,l.created_at);
   const closeDate=first(l.closed_date,l.close_date,l.closure_date,l.closed_at,l.completed_at,l.end_date,a.closed_date,a.close_date,'');
   const amount=Number(first(l.loan_amount,l.approved_amount,l.sanction_amount,l.amount,a.approved_amount,a.loan_amount,a.requested_amount)||0);
-  const baseTotal=Number(first(l.total_repayment,l.total_loan,l.total_amount,a.total_repayment)||amount);
+  const interestRate=Number(first(l.interest_rate,a.interest_rate,0)||0);const calculatedTotal=amount>0&&interestRate>0?amount+(amount*interestRate/100):amount;const baseTotal=Number(first(l.total_repayment,l.total_loan,l.total_amount,a.total_repayment)||0)>0?Number(first(l.total_repayment,l.total_loan,l.total_amount,a.total_repayment)):calculatedTotal;
   const es=emis.filter(e=>sameLoan(e,l)).sort((x,y)=>String(x.due_date||'').localeCompare(String(y.due_date||'')));
   const ps=pays.filter(p=>sameLoan(p,l));
   const paymentFor=e=>ps.find(p=>String(first(p.emi_id,p.emi_schedule_id))===String(first(e.id,e.emi_id)))||{};
