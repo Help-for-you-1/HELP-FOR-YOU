@@ -35,9 +35,9 @@ async function openProfessionalStatement(cid,lid){
    paid+=p;overdueTotal+=penalty;
    const overdueDate=first(pay.overdue_date,penalty>0?(e.due_date?new Date(new Date(e.due_date).getTime()+86400000).toISOString().slice(0,10):''):'');
    const overdueDays=Number(first(pay.overdue_days,penalty>0?Math.max(1,Math.floor((Date.now()-new Date(e.due_date+'T00:00:00').getTime())/86400000)):0)||0);
-   const overduePaid=Number(first(pay.overdue_amount,0)||0)>0?Number(pay.overdue_amount):0;
+   const overduePaid=Number(first(pay.overdue_paid,pay.overdue_amount,0)||0)>0?Number(first(pay.overdue_paid,pay.overdue_amount)):0;
    const isPaid=String(first(e.status,'')).toLowerCase()==='paid'||p>=due+penalty&&due>0;
-   return `<tr><td>${esc(first(e.emi_number,e.installment_no,e.number,'—'))}</td><td>${date(e.due_date)}</td><td>${money(due)}</td><td>${date(overdueDate)}</td><td>${overdueDays>0?overdueDays:'—'}</td><td>${money(penalty)}</td><td>${money(overduePaid)}</td><td>${date(first(pay.payment_date,e.paid_date))}</td><td>${money(p)}</td><td>${esc(first(pay.payment_type,pay.payment_method,e.payment_method,'—'))}</td><td>${isPaid?'Paid':esc(first(e.status,'Upcoming'))}</td><td>${money(Math.max(0,due+penalty-p))}</td></tr>`;
+   return `<tr><td>${esc(first(e.emi_number,e.installment_no,e.number,'—'))}</td><td>${date(e.due_date)}</td><td>${money(due)}</td><td>${date(overdueDate)}</td><td>${overdueDays>0?overdueDays:'—'}</td><td>${money(penalty)}</td><td>${money(overduePaid)}</td><td>${date(first(pay.payment_date,e.paid_date))}</td><td>${money(p)}</td><td>${esc(first(pay.payment_type,pay.payment_method,e.payment_method,'—'))}</td><td>${isPaid?'Paid':esc(first(e.status,'Upcoming'))}</td><td>${money(Math.max(0,due+penalty-p-overduePaid))}</td></tr>`;
   }).join('');
   const totalRepayment=baseTotal+overdueTotal;
   const outstanding=Math.max(0,totalRepayment-paid);
