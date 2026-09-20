@@ -32,8 +32,8 @@ async function openProfessionalStatement(cid,lid){
   let paid=0,overdueTotal=0;
   const rowsHtml=es.map(e=>{
    const due=Number(first(e.emi_amount,e.amount,e.due_amount)||0),p=Number(first(e.paid_amount,e.amount_paid,e.paid)||0),pay=paymentFor(e),recordedOverdue=Number(first(pay.overdue_amount,e.penalty,0)||0),penalty=recordedOverdue>0?recordedOverdue:0;
-   paid+=p;overdueTotal+=effectivePenalty;
    const today=new Date().toISOString().slice(0,10);const dueDate=String(e.due_date||'').slice(0,10);const unpaid=e.status?.toLowerCase()!=='paid'&&p<due;const overdueNow=unpaid&&dueDate<today;const liveDays=overdueNow?Math.max(1,Math.floor((Date.now()-new Date(dueDate+'T00:00:00').getTime())/86400000)):0;const livePenalty=overdueNow?Number((due*Math.pow(1.05,liveDays)-due).toFixed(2)):0;const effectivePenalty=Math.max(penalty,livePenalty);const overdueDate=first(pay.overdue_date,effectivePenalty>0?(dueDate?new Date(new Date(dueDate).getTime()+86400000).toISOString().slice(0,10):''):'');
+   paid+=p;overdueTotal+=effectivePenalty;
    const overdueDays=Number(first(pay.overdue_days,liveDays)||0);
    const overduePaid=Number(first(pay.overdue_paid,pay.overdue_amount,0)||0)>0?Number(first(pay.overdue_paid,pay.overdue_amount)):0;
    const isPaid=String(first(e.status,'')).toLowerCase()==='paid'||p>=due+effectivePenalty&&due>0;
