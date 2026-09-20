@@ -44,14 +44,18 @@ window.hfyAdminConfirmPayFinal=async function(){
  if(!confirm('Confirm '+paymentMethod+' payment of '+money(amount)+'?'))return;
  try{
   const s=sb();
-  const r=await s.rpc('hfy_add_payment',{p_emi_id:x.id,p_amount:amount,p_payment_date:new Date().toISOString().slice(0,10),p_payment_type:paymentMethod,p_remarks:'Admin EMI payment - '+paymentMethod,p_transaction_id:null});
+  const rpcName=amount>x.remaining?'hfy_admin_bulk_payment':'hfy_add_payment';
+  const rpcArgs=amount>x.remaining
+   ? {p_emi_id:x.id,p_amount:amount,p_payment_date:new Date().toISOString().slice(0,10),p_payment_type:paymentMethod,p_transaction_id:null,p_remarks:'Admin bulk EMI payment - '+paymentMethod}
+   : {p_emi_id:x.id,p_amount:amount,p_payment_date:new Date().toISOString().slice(0,10),p_payment_type:paymentMethod,p_remarks:'Admin EMI payment - '+paymentMethod,p_transaction_id:null};
+  const r=await s.rpc(rpcName,rpcArgs);
   if(r.error)throw r.error;
   if(r.data && r.data.success===false)throw new Error(r.data.message||'Payment was not completed.');
   if(typeof closeM==='function')closeM();
   if(typeof loadData==='function')await loadData();
   if(typeof loadEMI==='function')await loadEMI();
   if(typeof render==='function')await render();
-  alert(paymentMethod+' payment recorded successfully: '+money(amount));
+  alert(paymentMethod+' payment recorded successfully: '+money(amount)+(amount>x.remaining?' and allocated across unpaid EMIs.':''));
  }catch(err){console.error(err);alert('Payment failed: '+(err?.message||err));}
 };
 window.hfyPay=window.hfyAdminPayFinal;
