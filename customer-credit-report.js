@@ -50,6 +50,7 @@ function profile(c){
    (maxOverdueDays===0?15:maxOverdueDays<=1?10:maxOverdueDays<=3?5:0)
  )));
  const lateDays=latePaymentRows.reduce((n,e)=>n+Number(e.overdue_days||0),0);
+ const lateRate=emis.length?Math.min(100,(latePaymentRows.length/emis.length)*100):0;
  return {loans,emis,paid,overdue,closed,active,totalDue,totalPaid,onTime,lateDays,repaymentRate,lateRate,score,dueEmis,futureEmis,duePaid,currentOverdue,amountRate,maxOverdueDays,latePaymentRows,closedRate};
 }
 function badge(v,kind){return '<span class="creditBadge '+(kind||'')+'">'+esc(v)+'</span>';}
