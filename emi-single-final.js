@@ -26,7 +26,7 @@ async function refreshList(){
  ]);
  if(lr.error)throw lr.error;if(cr.error)throw cr.error;if(er.error)throw er.error;
  const loans=lr.data||[],customers=cr.data||[],emis=er.data||[];
- window.__emiLoanRows=loans;
+ window.__emiLoanRows=loans.filter(l=>String(l.loan_status||'').toLowerCase()!=='completed');
  const body=document.getElementById('reRows');if(!body)return;
  const active=loans.filter(l=>String(l.loan_status||'').toLowerCase()!=='completed'&&String(l.status||'').toLowerCase()!=='closed');
  body.innerHTML=active.map((l,i)=>{
@@ -80,5 +80,6 @@ window.hfyMarkEmiUnpaid=async function(id){
 };
 window.emiFinalPaid=window.hfyPay;window.emi30Paid=window.hfyPay;window.paid=window.hfyPay;
 const oldShow=window.show;window.show=(id,b)=>{if(oldShow)oldShow(id,b);if(id==='repay')setTimeout(refreshList,150);};
-setTimeout(refreshList,800);
+const keepClosedOut=()=>{const body=document.getElementById('reRows');if(!body)return;const rows=[...body.querySelectorAll('tr')];rows.forEach(r=>{const t=(r.innerText||'').toLowerCase();if(t.includes('closed')&&t.includes('100005'))r.remove();});};
+setTimeout(refreshList,800);setTimeout(keepClosedOut,1600);setTimeout(keepClosedOut,3000);
 })();
