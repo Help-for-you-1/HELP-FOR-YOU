@@ -32,25 +32,39 @@ function profile(c){
  const totalDue=emis.reduce((n,e)=>n+Number(e.emi_amount||0)+Number(e.penalty||0),0);
  const totalPaid=emis.reduce((n,e)=>n+Number(e.paid_amount||0),0);
  const onTime=paid.filter(e=>Number(e.paid_amount||0)>=Number(e.emi_amount||0)+Number(e.penalty||0)&&String(e.due_date||'')>=String((cache.payments.find(p=>String(p.loan_id)===String(e.loan_id)&&String(p.customer_id)===String(c.id))||{}).payment_date||e.due_date)).length;
- const lateDays=overdue.reduce((n,e)=>n+daysLate(e.due_date),0);
- const repaymentRate=totalDue>0?Math.min(100,(totalPaid/totalDue)*100):100;
- const lateRate=emis.length?Math.min(100,(overdue.length/emis.length)*100):0;
- const score=Math.round(Math.max(300,Math.min(900,300+(repaymentRate*.6)+(Math.max(0,100-lateRate)*3))));
- return {loans,emis,paid,overdue,closed,active,totalDue,totalPaid,onTime,lateDays,repaymentRate,lateRate,score};
+ const today=new Date().toISOString().slice(0,10);
+ const dueEmis=emis.filter(e=>String(e.due_date||'')<=today);
+ const futureEmis=emis.filter(e=>String(e.due_date||'')>today);
+ const duePaid=dueEmis.filter(e=>Number(e.remaining_amount||0)<=0||String(e.status||'').toLowerCase()==='paid');
+ const currentOverdue=dueEmis.filter(e=>Number(e.remaining_amount||0)>0);
+ const repaymentRate=dueEmis.length?Math.min(100,(duePaid.length/dueEmis.length)*100):100;
+ const amountCompletion=dueEmis.reduce((n,e)=>n+Number(e.emi_amount||0)+Number(e.penalty||0),0);
+ const dueAmountPaid=dueEmis.reduce((n,e)=>n+Math.min(Number(e.paid_amount||0),Number(e.emi_amount||0)+Number(e.penalty||0)),0);
+ const amountRate=amountCompletion?Math.min(100,(dueAmountPaid/amountCompletion)*100):100;
+ const repaymentRows=cache.payments.filter(x=>String(x.customer_id)===String(c.id)&&String(x.status||'').toLowerCase()!=='failed');
+ const latePaymentRows=repaymentRows.filter(x=>Number(x.overdue_days||0)>0);
+ const maxOverdueDays=Math.max(0,...repaymentRows.map(x=>Number(x.overdue_days||0)));
+ const closedRate=loans.length?(closed.length/loans.length)*100:0;
+ const score=Math.round(Math.max(300,Math.min(900,
+   300+(repaymentRate*.45)+(amountRate*.15)+(closedRate*.10)+(currentOverdue.length===0?15:Math.max(0,15-currentOverdue.length*3))+
+   (maxOverdueDays===0?15:maxOverdueDays<=1?10:maxOverdueDays<=3?5:0)
+ )));
+ const lateDays=latePaymentRows.reduce((n,e)=>n+Number(e.overdue_days||0),0);
+ return {loans,emis,paid,overdue,closed,active,totalDue,totalPaid,onTime,lateDays,repaymentRate,lateRate,score,dueEmis,futureEmis,duePaid,currentOverdue,amountRate,maxOverdueDays,latePaymentRows,closedRate};
 }
 function badge(v,kind){return '<span class="creditBadge '+(kind||'')+'">'+esc(v)+'</span>';}
 function renderCreditRows(){
  const b=document.getElementById('creditRows');if(!b)return;
  const term=(document.getElementById('creditSearch')?.value||'').toLowerCase();
  const rows=cache.customers.filter(c=>(String(c.full_name||'')+' '+String(c.mobile||'')).toLowerCase().includes(term));
- b.innerHTML=rows.map(c=>{const p=profile(c);const state=p.overdue.length?'Overdue':(p.closed.length?'Closed':'Active');return '<tr><td>'+esc(c.full_name)+'</td><td>'+esc(c.mobile||'-')+'</td><td>'+p.loans.length+'</td><td>'+p.closed.length+'</td><td>'+p.paid.length+'/'+p.emis.length+'</td><td>'+p.overdue.length+'</td><td>'+p.score+'</td><td>'+p.repaymentRate.toFixed(1)+'%</td><td>'+badge(state,state.toLowerCase())+'</td><td><button class="btn blue" onclick="viewCreditReport(\''+esc(c.id)+'\')">View Report</button></td></tr>';}).join('')||'<tr><td colspan="10">No customer records.</td></tr>';
+ b.innerHTML=rows.map(c=>{const p=profile(c);const state=p.overdue.length?'Overdue':(p.closed.length?'Closed':'Active');return '<tr><td>'+esc(c.full_name)+'</td><td>'+esc(c.mobile||'-')+'</td><td>'+p.loans.length+'</td><td>'+p.closed.length+'</td><td>'+p.duePaid.length+'/'+p.dueEmis.length+'</td><td>'+p.currentOverdue.length+'</td><td>'+p.score+'</td><td>'+p.repaymentRate.toFixed(1)+'%</td><td>'+badge(state,state.toLowerCase())+'</td><td><button class="btn blue" onclick="viewCreditReport(\''+esc(c.id)+'\')">View Report</button></td></tr>';}).join('')||'<tr><td colspan="10">No customer records.</td></tr>';
 }
 window.viewCreditReport=async function(id){
  const c=cache.customers.find(x=>String(x.id)===String(id));if(!c)return;
  const p=profile(c);
  const loanRows=p.loans.map(l=>'<tr><td>'+esc(l.loan_id)+'</td><td>'+money(l.loan_amount)+'</td><td>'+money(l.total_repayment)+'</td><td>'+money(l.total_paid)+'</td><td>'+money(l.remaining_amount)+'</td><td>'+esc(l.loan_status||'-')+'</td><td>'+esc(l.end_date||'-')+'</td></tr>').join('');
  const emiRows=p.emis.map(e=>{const late=Number(e.remaining_amount||0)>0&&String(e.due_date||'')<new Date().toISOString().slice(0,10);return '<tr><td>'+esc(e.loan_id)+'</td><td>'+esc(e.emi_number)+'</td><td>'+esc(e.due_date)+'</td><td>'+money(e.emi_amount)+'</td><td>'+money(e.penalty)+'</td><td>'+money(e.paid_amount)+'</td><td>'+money(e.remaining_amount)+'</td><td>'+badge(late?'Overdue':(String(e.status||'').toLowerCase()==='paid'?'Paid':'Pending'),late?'over':'paid')+'</td></tr>';}).join('');
- const html='<div class="creditHead"><div><h3 style="margin:0">'+esc(c.full_name)+'</h3><div>'+esc(c.mobile||'-')+'</div></div><div class="creditScore"><small>HFY Repayment Score</small><b>'+p.score+'</b><span>Internal use only</span></div></div><p class="creditNotice">This is an internal repayment-behaviour report for HELP FOR YOU. It is <b>not an official CIBIL/TransUnion credit report</b> and does not replace a bureau enquiry.</p><div class="creditStats"><div><small>Total Loans</small><b>'+p.loans.length+'</b></div><div><small>Closed Loans</small><b>'+p.closed.length+'</b></div><div><small>EMIs Paid</small><b>'+p.paid.length+'/'+p.emis.length+'</b></div><div><small>Overdue EMIs</small><b>'+p.overdue.length+'</b></div><div><small>Repayment Rate</small><b>'+p.repaymentRate.toFixed(1)+'%</b></div><div><small>Total Paid</small><b>'+money(p.totalPaid)+'</b></div></div><h4>Loan History</h4><div class="wrap"><table><tr><th>Loan ID</th><th>Loan Amount</th><th>Total Loan</th><th>Total Paid</th><th>Outstanding</th><th>Status</th><th>End Date</th></tr>'+loanRows+'</table></div><h4>EMI Behaviour</h4><div class="wrap"><table><tr><th>Loan ID</th><th>EMI No</th><th>Due Date</th><th>EMI</th><th>Penalty</th><th>Paid</th><th>Remaining</th><th>Status</th></tr>'+emiRows+'</table></div><div class="creditActions"><button class="btn blue" onclick="window.printCreditReport(\''+esc(c.id)+'\')">Print Report</button><button class="btn green" onclick="closeM()">Close</button></div>';
+ const html='<div class="creditHead"><div><h3 style="margin:0">'+esc(c.full_name)+'</h3><div>'+esc(c.mobile||'-')+'</div></div><div class="creditScore"><small>HFY Repayment Score</small><b>'+p.score+'</b><span>Internal use only</span></div></div><p class="creditNotice">This is an internal repayment-behaviour report for HELP FOR YOU. It is <b>not an official CIBIL/TransUnion credit report</b> and does not replace a bureau enquiry.</p><div class="creditStats"><div><small>Total Loans</small><b>'+p.loans.length+'</b></div><div><small>Closed Loans</small><b>'+p.closed.length+'</b></div><div><small>Due EMIs Paid</small><b>'+p.duePaid.length+'/'+p.dueEmis.length+'</b></div><div><small>Current Overdue</small><b>'+p.currentOverdue.length+'</b></div><div><small>Repayment Rate</small><b>'+p.repaymentRate.toFixed(1)+'%</b></div><div><small>Max Overdue Days</small><b>'+p.maxOverdueDays+'</b></div><div><small>Outstanding</small><b>'+money(p.loans.reduce((n,l)=>n+Number(l.remaining_amount||0),0))+'</b></div><div><small>Total Paid</small><b>'+money(p.totalPaid)+'</b></div></div><h4>Loan History</h4><div class="wrap"><table><tr><th>Loan ID</th><th>Loan Amount</th><th>Total Loan</th><th>Total Paid</th><th>Outstanding</th><th>Status</th><th>End Date</th></tr>'+loanRows+'</table></div><h4>EMI Behaviour</h4><div class="wrap"><table><tr><th>Loan ID</th><th>EMI No</th><th>Due Date</th><th>EMI</th><th>Penalty</th><th>Paid</th><th>Remaining</th><th>Status</th></tr>'+emiRows+'</table></div><div class="creditActions"><button class="btn blue" onclick="window.printCreditReport(\''+esc(c.id)+'\')">Print Report</button><button class="btn green" onclick="closeM()">Close</button></div>';
  openBox('Customer Credit / Repayment Report',html);
 };
 window.printCreditReport=function(id){
