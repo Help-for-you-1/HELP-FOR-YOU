@@ -40,7 +40,9 @@ window.hfyAdminConfirmPayFinal=async function(){
  const amount=Number(input?.value||0);
  const paymentMethod=method?.value==='UPI'?'UPI':'Cash';
  if(!Number.isFinite(amount)||amount<=0)return alert('Enter a valid payment amount.');
- if(amount>x.remaining)return alert('Payment amount cannot be greater than this EMI remaining amount.');
+ if(amount>x.remaining){
+  if(!confirm('This amount is greater than this EMI remaining amount. Allocate it across unpaid EMIs in due-date order?'))return;
+ }
  if(!confirm('Confirm '+paymentMethod+' payment of '+money(amount)+'?'))return;
  try{
   const s=sb();
