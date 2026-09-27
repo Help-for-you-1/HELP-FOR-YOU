@@ -26,6 +26,30 @@ async function loadCore(){
   renderAppsDirect();
   return true;
 }
+function renderCustomersFunctional(){
+  const body=document.getElementById('cuRows');
+  const rows=window.__HFY_CUSTOMERS||[];
+  const loans=window.__HFY_LOANS||[];
+  const apps=window.__HFY_APPLICATIONS||[];
+  if(!body)return;
+  const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+  const money=v=>'₹'+Number(v||0).toFixed(2);
+  const type=window.__HFY_CUSTOMER_TYPE||'active';
+  const filtered=rows.map((x,i)=>{
+    const cls=loans.filter(l=>String(l.customer_id)===String(x.id));
+    const hasActive=cls.some(l=>{const s=String(l.loan_status||l.status||'').trim().toLowerCase();return s!=='closed'&&s!=='completed';});
+    const hasClosed=cls.some(l=>{const s=String(l.loan_status||l.status||'').trim().toLowerCase();return s==='closed'||s==='completed';});
+    return {x,i,show:type==='closed'?(!hasActive&&hasClosed):hasActive};
+  }).filter(z=>z.show);
+  body.innerHTML=filtered.map(z=>{
+    const x=z.x,i=z.i;
+    const cls=loans.filter(l=>String(l.customer_id)===String(x.id));
+    const l=(type==='closed'?cls.find(q=>['closed','completed'].includes(String(q.loan_status||q.status||'').trim().toLowerCase())):cls.find(q=>!['closed','completed'].includes(String(q.loan_status||q.status||'').trim().toLowerCase())))||cls[0]||{};
+    const a=apps.find(q=>String(q.customer_id)===String(x.id))||{};
+    return '<tr><td>'+esc(x.full_name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc(l.loan_id||'-')+'</td><td>'+money(a.approved_amount||l.loan_amount)+'</td><td>'+esc(l.start_date||a.sanction_date||'-')+'</td><td><button class="btn blue" onclick="editCustomer('+i+')">View / Edit</button> <button class="btn red" onclick="deleteCustomer('+i+')">Delete</button></td></tr>';
+  }).join('')||'<tr><td colspan="6">No '+(type==='closed'?'closed':'active')+' customers found.</td></tr>';
+}
+window.hfyRenderCustomersFunctional=renderCustomersFunctional;
 function renderAppsDirect(){
   const body=document.getElementById('appsRows');
   const rows=window.__HFY_APPLICATIONS||[];
@@ -92,7 +116,13 @@ function bind(){
         if(id==='apps'){renderAppsDirect();if(typeof window.loadApplications==='function')await window.loadApplications();renderAppsDirect();}
         else if(['reports','loanaccounts','autopay','collections','risk','documents','accounting','audit','notifications','settings'].includes(id)&&typeof window.renderPanel==='function')window.renderPanel(id);
         else if(id==='withdrawals'&&typeof window.renderWithdrawals==='function')await window.renderWithdrawals();
-        else if(['dash','customers','repay'].includes(id)&&typeof window.renderCore==='function')window.renderCore();
+        else if(id==='customers'){
+          if(typeof window.renderCore==='function')window.renderCore();
+          setTimeout(function(){
+            if(typeof window.hfyRenderCustomersFunctional==='function')window.hfyRenderCustomersFunctional();
+          },100);
+        }
+        else if(['dash','repay'].includes(id)&&typeof window.renderCore==='function')window.renderCore();
         else if(id==='approval'){
           if(typeof window.renderCore==='function')window.renderCore();
           setTimeout(function(){
