@@ -223,7 +223,7 @@ window.saveLoanProduct=async id=>{const p={name:qid('pn').value.trim(),min_amoun
 async 
 function renderWithdrawals(){const el=qid('withdrawalsBody');if(!el)return;C().from('staff_wallet_withdrawals').select('*,staff:staff_id(employee_id,name,mobile)').order('requested_at',{ascending:false}).then(r=>{if(r.error){el.innerHTML='<p>'+esc(r.error.message)+'</p>';return}const rows=(r.data||[]).map(x=>'<tr><td>'+esc(x.staff?.employee_id||'-')+'</td><td>'+esc(x.staff?.name||'-')+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.status)+'</td><td>'+esc(new Date(x.requested_at).toLocaleString())+'</td><td>'+ (x.status==='pending'?'<button class="btn green" onclick="reviewWithdrawal('+x.id+',\'approved\')">Accept</button> <button class="btn red" onclick="reviewWithdrawal('+x.id+',\'rejected\')">Reject</button>':'-')+'</td></tr>').join('')||'<tr><td colspan="6">No withdrawal requests.</td></tr>';el.innerHTML='<div class="wrap"><table><tr><th>Employee ID</th><th>Staff</th><th>Amount</th><th>Status</th><th>Requested</th><th>Action</th></tr>'+rows+'</table></div>'})}
 window.reviewWithdrawal=async(id,status)=>{try{const remarks=status==='approved'?'Approved by Admin':'Rejected by Admin';const r=await C().rpc('hfy_review_staff_withdrawal',{p_withdrawal_id:id,p_status:status,p_remarks:remarks});if(r.error)throw r.error;renderWithdrawals();alert(status==='approved'?'Withdrawal approved. Amount deducted from wallet.':'Withdrawal rejected. Amount remains in wallet.')}catch(e){alert(e.message||e)}};
-function syncGlobals(){
+async function syncGlobals(){
  try{
   const q=await Promise.all([
    C().from('customers').select('*'),
