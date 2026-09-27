@@ -38,6 +38,18 @@ function renderAppsDirect(){
     return '<tr><td>'+esc(x.id??'-')+'</td><td>'+esc(x.full_name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc((x.applied_at||x.created_at||'').slice(0,10))+'</td><td>'+money(x.requested_amount||0)+'</td><td class="'+cls+'">'+esc(x.status||'-')+'</td><td><button class="btn gray" onclick="viewApp('+i+')">View</button></td></tr>';
   }).join('')||'<tr><td colspan="7">No applications found.</td></tr>');
 }
+window.viewApp=function(i){
+  const rows=window.__HFY_APPLICATIONS||[];
+  const x=rows[i];
+  if(!x)return alert('Application not found.');
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money=v=>'₹'+Number(v||0).toFixed(2);
+  const d=document.getElementById('modal'),mt=document.getElementById('mt'),mb=document.getElementById('mb');
+  if(!d||!mt||!mb)return alert('Application details: '+(x.full_name||'-')+' | Mobile: '+(x.mobile||'-')+' | Amount: '+money(x.requested_amount)+' | Status: '+(x.status||'-'));
+  mt.textContent='Application Details';
+  mb.innerHTML='<div class="card"><p><b>Name:</b> '+esc(x.full_name||'-')+'</p><p><b>Mobile:</b> '+esc(x.mobile||'-')+'</p><p><b>Email:</b> '+esc(x.email||'-')+'</p><p><b>Application ID:</b> '+esc(x.id??'-')+'</p><p><b>Requested Amount:</b> '+money(x.requested_amount)+'</p><p><b>Approved Amount:</b> '+money(x.approved_amount)+'</p><p><b>Tenure:</b> '+esc(x.tenure_months??'-')+' Month(s)</p><p><b>Status:</b> '+esc(x.status||'-')+'</p><p><b>Applied Date:</b> '+esc((x.applied_at||x.created_at||'').slice(0,10))+'</p></div>';
+  d.classList.add('on');
+};
 async function loadModules(){
   if(typeof window.__hfyRefreshModules==='function'){
     await window.__hfyRefreshModules();
