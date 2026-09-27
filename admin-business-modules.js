@@ -40,6 +40,7 @@ async function renderAudit(){
  const body=rows.map(x=>'<tr><td>'+esc(value(x.created_at||x.timestamp||x.logged_at))+'</td><td>'+esc(value(x.action||x.event||x.operation))+'</td><td>'+esc(value(x.entity_type||x.table_name||x.module))+'</td><td>'+esc(value(x.entity_id||x.record_id))+'</td><td>'+esc(value(x.user_id||x.admin_id||x.performed_by))+'</td><td>'+esc(value(x.details||x.description||x.metadata))+'</td></tr>').join('')||'<tr><td colspan="6">No audit log entries found.</td></tr>';
  el.innerHTML='<div class="actions"><button class="btn blue" onclick="renderAudit()">Refresh Audit Log</button></div><div class="wrap"><table><thead><tr><th>Date & Time</th><th>Action</th><th>Entity</th><th>Entity ID</th><th>User</th><th>Details</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
+window.hfyRenderSettings=renderSettings;
 async function renderSettings(){
  const el=qid('settingsBody');
  if(!el)return;
