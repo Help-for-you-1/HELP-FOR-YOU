@@ -191,8 +191,8 @@ window.hfyRenderCustomersOnly=function(){
   var type=window.__HFY_CUSTOMER_TYPE||'active';
   var filtered=rows.map(function(x,i){
     var cls=loans.filter(function(l){return String(l.customer_id)===String(x.id);});
-    var hasActive=cls.some(function(l){return String(l.loan_status||l.status||'').toLowerCase()!=='closed';});
-    var hasClosed=cls.some(function(l){return String(l.loan_status||l.status||'').toLowerCase()==='closed';});
+    var hasActive=cls.some(function(l){var s=String(l.loan_status||l.status||'').toLowerCase();return s!=='closed'&&s!=='completed';});
+    var hasClosed=cls.some(function(l){var s=String(l.loan_status||l.status||'').toLowerCase();return s==='closed'||s==='completed';});
     return {x:x,i:i,show:type==='active'?hasActive:(!hasActive&&hasClosed)};
   }).filter(function(z){return z.show;});
   body.innerHTML=filtered.map(function(z){
