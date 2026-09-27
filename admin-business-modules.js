@@ -40,6 +40,24 @@ async function renderAudit(){
  const body=rows.map(x=>'<tr><td>'+esc(value(x.created_at||x.timestamp||x.logged_at))+'</td><td>'+esc(value(x.action||x.event||x.operation))+'</td><td>'+esc(value(x.entity_type||x.table_name||x.module))+'</td><td>'+esc(value(x.entity_id||x.record_id))+'</td><td>'+esc(value(x.user_id||x.admin_id||x.performed_by))+'</td><td>'+esc(value(x.details||x.description||x.metadata))+'</td></tr>').join('')||'<tr><td colspan="6">No audit log entries found.</td></tr>';
  el.innerHTML='<div class="actions"><button class="btn blue" onclick="renderAudit()">Refresh Audit Log</button></div><div class="wrap"><table><thead><tr><th>Date & Time</th><th>Action</th><th>Entity</th><th>Entity ID</th><th>User</th><th>Details</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
+async function renderSettings(){
+ const el=qid('settingsBody');
+ if(!el)return;
+ el.innerHTML='<p>Loading loan products...</p>';
+ const r=await C().from('loan_products').select('*').order('id');
+ if(r.error){console.error('Settings load:',r.error);el.innerHTML='<p>Unable to load loan products.</p>';return}
+ M.products=r.data||[];
+ const rows=M.products.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+money(x.min_amount)+'</td><td>'+money(x.max_amount)+'</td><td>'+esc(x.tenure_months)+'</td><td>'+esc(x.interest_rate)+'%</td><td>'+money(x.processing_fee)+'</td><td>'+esc(x.penalty_percent)+'%</td><td>'+esc(x.emi_frequency)+'</td><td>'+((x.active)?'Active':'Inactive')+'</td><td><button class="btn blue" onclick="editLoanProduct('+Number(x.id)+')">Edit</button></td></tr>').join('')||'<tr><td colspan="10">No loan products found.</td></tr>';
+ el.innerHTML='<div class="actions"><button class="btn blue" onclick="addLoanProduct()">+ Add Loan Product</button><button class="btn gray" onclick="renderSettings()">Refresh</button></div><div class="wrap"><table><thead><tr><th>Name</th><th>Min Amount</th><th>Max Amount</th><th>Tenure</th><th>Interest</th><th>Processing Fee</th><th>Penalty</th><th>Frequency</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function productForm(x){
+ return '<div class="form"><label>Name<input id="lpname" value="'+esc(x?.name||'')+'"></label><label>Min Amount<input id="lpmin" type="number" value="'+Number(x?.min_amount??1000)+'"></label><label>Max Amount<input id="lpmax" type="number" value="'+Number(x?.max_amount??20000)+'"></label><label>Tenure (Months)<input id="lptenure" type="number" min="1" value="'+Number(x?.tenure_months??1)+'"></label><label>Interest Rate %<input id="lpinterest" type="number" step="0.01" value="'+Number(x?.interest_rate??20)+'"></label><label>Processing Fee<input id="lppfee" type="number" step="0.01" value="'+Number(x?.processing_fee??0)+'"></label><label>Penalty %<input id="lppenalty" type="number" step="0.01" value="'+Number(x?.penalty_percent??2)+'"></label><label>EMI Frequency<select id="lpfreq"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label><label>Active<select id="lpactive"><option value="true">Active</option><option value="false">Inactive</option></select></label><div class="full"><button class="btn green" onclick="'+(x?'updateLoanProduct('+Number(x.id)+')':'saveLoanProduct()')+'">Save</button></div></div>';
+}
+window.addLoanProduct=()=>{modal('Add Loan Product',productForm(null));};
+window.editLoanProduct=id=>{const x=M.products.find(z=>Number(z.id)===Number(id));if(!x)return alert('Loan product not found.');modal('Edit Loan Product',productForm(x));qid('lpfreq').value=x.emi_frequency||'daily';qid('lpactive').value=String(x.active!==false);};
+async function productPayload(){return {name:qid('lpname').value.trim(),min_amount:Number(qid('lpmin').value||0),max_amount:Number(qid('lpmax').value||0),tenure_months:Number(qid('lptenure').value||1),interest_rate:Number(qid('lpinterest').value||0),processing_fee:Number(qid('lppfee').value||0),penalty_percent:Number(qid('lppenalty').value||0),emi_frequency:qid('lpfreq').value,active:qid('lpactive').value==='true',updated_at:new Date().toISOString()};}
+window.saveLoanProduct=async()=>{try{const p=await productPayload();if(!p.name)return alert('Product name is required.');const r=await C().from('loan_products').insert(p);if(r.error)throw r.error;closeM();await renderSettings();alert('Loan product added successfully.')}catch(e){alert('Loan product save error: '+(e?.message||e))}};
+window.updateLoanProduct=async id=>{try{const p=await productPayload();if(!p.name)return alert('Product name is required.');const r=await C().from('loan_products').update(p).eq('id',id);if(r.error)throw r.error;closeM();await renderSettings();alert('Loan product updated successfully.')}catch(e){alert('Loan product update error: '+(e?.message||e))}};
 async function renderAccounting(c,l){
  const el=qid('accountingBody');
  if(!el)return;
