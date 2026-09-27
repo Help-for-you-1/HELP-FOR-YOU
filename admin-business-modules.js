@@ -35,7 +35,7 @@ async function getAll(){
  M.audits=r[5].error?(console.warn('Audit:',r[5].error),[]):(r[5].data||[]);
 }
 async function refresh(){
- try{await getAll();renderCurrent()}catch(e){console.error('Admin modules',e);if(e?.message)console.warn(e.message)}
+ try{if(window.hfyAdminReady){const ok=await window.hfyAdminReady;if(!ok)return;}await getAll();renderCurrent()}catch(e){console.error('Admin modules',e);if(e?.message)console.warn(e.message)}
 }
 function addNav(id,label){
  if(document.querySelector('.m[data-hfy="'+id+'"],.m[onclick*="show(\\\''+id+'\\\'"]'))return;
