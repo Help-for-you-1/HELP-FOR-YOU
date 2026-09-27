@@ -27,7 +27,7 @@ async function loadData(){
    db().from('staff').select('*').order('created_at',{ascending:false}),
    db().from('staff_wallets').select('*')
   ];
-  const r=await Promise.all(qs.map(p=>p.catch(error=>({data:[],error}))));
+  const r=await Promise.all(qs.map(p=>Promise.resolve(p).catch(error=>({data:[],error}))));
   D.a=r[0].error?(console.error('Applications load:',r[0].error),[]):(r[0].data||[]);
   D.c=r[1].error?(console.error('Customers load:',r[1].error),[]):(r[1].data||[]);
   D.l=r[2].error?(console.error('Loans load:',r[2].error),[]):(r[2].data||[]);
