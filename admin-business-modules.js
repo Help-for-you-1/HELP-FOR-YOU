@@ -139,7 +139,7 @@ function renderDocuments(c,l){
  const apps=window.__HFY_APPLICATIONS||[];
  const fields=[['Identity','identity_proof_url'],['PAN','pan_proof_url'],['Address','address_proof_url'],['Bank','bank_proof_url'],['Income','income_proof_url'],['Selfie','selfie_url']];
  el.innerHTML='<div class="wrap"><table><thead><tr><th>Application</th><th>Customer</th><th>Status</th><th>Documents</th></tr></thead><tbody>'+
- apps.map(a=>'<tr><td>#'+esc(a.id)+'</td><td>'+esc(a.full_name||a.name||'-')+'</td><td>'+esc(a.status)+'</td><td>'+fields.map(f=>a[f[1]]?'<a class="btn gray" target="_blank" rel="noopener" href="'+esc(a[f[1]])+'">'+f[0]+'</a>':'').join(' ')||'No uploaded documents').toString()+'</td></tr>').join('')||'<tr><td colspan="4">No applications.</td></tr>'+'</tbody></table></div>';
+ apps.map(a=>'<tr><td>#'+esc(a.id)+'</td><td>'+esc(a.full_name||a.name||'-')+'</td><td>'+esc(a.status)+'</td><td>'+(fields.map(f=>a[f[1]]?'<a class="btn gray" target="_blank" rel="noopener" href="'+esc(a[f[1]])+'">'+f[0]+'</a>':'').join(' ')||'No uploaded documents').toString()+'</td></tr>').join('')||'<tr><td colspan="4">No applications.</td></tr>'+'</tbody></table></div>';
 }
 function renderAccounting(c,l){
  const el=qid('accountingBody');if(!el)return;
