@@ -17,16 +17,16 @@ window.viewApp=function(i){
   mb.innerHTML='<div class="form">'+
     fld('Application ID','av_id',x.id)+fld('Customer ID','av_cid',x.customer_id)+
     fld('Full Name','an',x.full_name||x.name)+fld('Parent / Father / Mother Name','apn',x.parent_name)+
-    fld('Mobile','am',x.mobile)+fld('Email','ae',x.email)+
+    fld('Mobile','am',x.mobile)+fld('Email','ae',x.email)+fld('Alternate Mobile','aaltm',x.alternate_mobile)+fld('Marital Status','ams',x.marital_status)+
     fld('DOB','ad',x.date_of_birth,'date')+fld('Gender','ag',x.gender)+
     '<label class="full">Address<input id="ax" value="'+e(x.address)+'"></label>'+
     fld('House','ah',x.house)+fld('Street','astreet',x.street)+fld('Village','av',x.village)+
     fld('Post Office','apo',x.post_office)+fld('City','acity',x.city)+fld('District','adi',x.district)+
     fld('State','as',x.state)+fld('Pincode','ap',x.pincode)+fld('Occupation','ao',x.occupation)+
-    fld('Monthly Income','ai',x.monthly_income,'number')+fld('PAN Number','apan',x.pan_number)+
-    fld('Aadhaar Number','aad',x.aadhaar_number)+fld('Bank Account','aba',x.bank_account)+fld('IFSC Code','aifsc',x.ifsc_code)+
+    fld('Monthly Income','ai',x.monthly_income,'number')+fld('Employment / Business Name','aebn',x.employment_business_name)+fld('Work / Business Address','awba',x.work_business_address)+fld('PAN Number','apan',x.pan_number)+
+    fld('Aadhaar Number','aad',x.aadhaar_number)+fld('Bank Account','aba',x.bank_account)+fld('Bank Account Type','abat',x.bank_account_type)+fld('IFSC Code','aifsc',x.ifsc_code)+
     fld('Loan Type','alt',x.loan_type)+
-    '<label class="full">Loan Purpose<input id="alp" value="'+e(x.loan_purpose)+'"></label>'+
+    '<label class="full">Loan Purpose<input id="alp" value="'+e(x.loan_purpose)+'"></label>'+fld('Existing Loan','ael',x.existing_loan)+fld('Existing Loan Outstanding Amount','aleo',x.existing_loan_outstanding,'number')+'<label class="full">Application Remarks<input id="aar" value="'+e(x.application_remarks)+'"></label>'+
     fld('Requested Amount','arq',x.requested_amount||x.loan_amount||0,'number')+
     fld('Sanction / Approved Amount','aa',x.approved_amount||x.loan_amount||x.requested_amount||0,'number')+
     fld('Loan Amount','ala',x.loan_amount||x.approved_amount||0,'number')+
@@ -101,7 +101,7 @@ window.approve=async function(i){
       aadhaar_number:g('aad')?.value||null,
       bank_account:g('aba')?.value||null,
       ifsc_code:g('aifsc')?.value||null,
-      occupation:g('ao')?.value||null,
+      occupation:g('ao')?.value||null,alternate_mobile:g('aaltm')?.value||null,marital_status:g('ams')?.value||null,employment_business_name:g('aebn')?.value||null,work_business_address:g('awba')?.value||null,bank_account_type:g('abat')?.value||null,existing_loan:g('ael')?.value||null,existing_loan_outstanding:Number(g('aleo')?.value||0),application_remarks:g('aar')?.value||null,
       monthly_income:Number(g('ai')?.value||0)||null,
       loan_type:g('alt')?.value||null,
       loan_purpose:g('alp')?.value||null,
