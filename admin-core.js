@@ -16,6 +16,7 @@ const customerName=id=>{const c=D.c.find(x=>String(x.id)===String(id));return c?
 const isPending=x=>['draft','submitted','pending','under_review'].includes(String(x.status||'').toLowerCase());
 async function loadData(){
  try{
+  if(window.hfyAdminReady){const ok=await window.hfyAdminReady;if(!ok)return;}
   const qs=[
    db().from('loan_applications').select('*').order('created_at',{ascending:false}),
    db().from('customers').select('*').order('created_at',{ascending:false}),
