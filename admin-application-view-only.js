@@ -39,7 +39,7 @@ function fallbackEditor(i){
 }
 async function view(i){
  const rows=window.__HFY_APPLICATIONS||[],x=rows[Number(i)];if(!x){alert('Application not found.');return;}
- if(typeof window.editApproval==='function')window.editApproval(Number(i));else fallbackEditor(Number(i));
+ if(typeof window.editApproval==='function'&&typeof window.openBox==='function')window.editApproval(Number(i));else fallbackEditor(Number(i));
  const mb=document.getElementById('mb'),modal=document.getElementById('modal'),closeBtn=modal&&modal.querySelector('.box > button');
  if(closeBtn)closeBtn.onclick=function(){if(modal)modal.classList.remove('on');};if(!mb)return;
  const customers=window.__HFY_CUSTOMERS||[],c=customers.find(v=>String(v.id)===String(x.customer_id))||{},old=mb.innerHTML;
