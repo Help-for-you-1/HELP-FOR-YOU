@@ -34,7 +34,7 @@ async function refresh(){
  try{await getAll();renderCurrent()}catch(e){console.error('Admin modules',e);if(e?.message)console.warn(e.message)}
 }
 function addNav(id,label){
- if(document.querySelector('.m[data-hfy="'+id+'"]'))return;
+ if(document.querySelector('.m[data-hfy="'+id+'"],.m[onclick*="show(\\\''+id+'\\\'"]'))return;
  const home=[...document.querySelectorAll('.m')].find(x=>x.textContent.includes('🏠'));
  const d=document.createElement('div');d.className='m';d.dataset.hfy=id;d.textContent=label;d.onclick=()=>window.show(id,d);
  home?.before(d);
