@@ -84,6 +84,7 @@ function renderCurrent(){
 }
 function renderPanel(id){
  const {c,l}=maps();
+ if(id==='reports')renderReports(c,l);
  if(id==='loanaccounts')renderLoanAccounts(c,l);
  if(id==='autopay')renderMandates(c,l);
  if(id==='collections')renderCollections(c,l);
@@ -94,6 +95,31 @@ function renderPanel(id){
  if(id==='notifications')renderNotifications(c,l);
  if(id==='settings')renderSettings();
 }
+function renderReports(c,l){
+ const el=qid('misReportBody');if(!el)return;
+ const apps=window.__HFY_APPLICATIONS||[], pays=window.__HFY_PAYMENTS||[], tx=window.__HFY_TRANSACTIONS||[];
+ const active=l.filter(x=>!['closed','completed','rejected','cancelled'].includes(String(x.loan_status||'').toLowerCase()));
+ const overdue=(window.__HFY_EMIS||[]).filter(x=>x.status!=='paid'&&Number(x.remaining_amount||0)>0&&x.due_date<today());
+ const collection=pays.reduce((n,x)=>n+Number(x.amount||0),0);
+ const disbursed=l.reduce((n,x)=>n+Number(x.loan_amount||0),0);
+ el.innerHTML=`<div class="cards">
+ <div class="card">Applications<b>${apps.length}</b></div>
+ <div class="card">Active Loans<b>${active.length}</b></div>
+ <div class="card">Collection<b>${money(collection)}</b></div>
+ <div class="card">Disbursement<b>${money(disbursed)}</b></div>
+ <div class="card">Outstanding<b>${money(active.reduce((n,x)=>n+Number(x.remaining_amount||0),0))}</b></div>
+ <div class="card">Overdue EMI<b>${overdue.length}</b></div>
+ </div>
+ <div class="actions"><button class="btn blue" onclick="exportMISReport()">Export MIS CSV</button></div>
+ <div class="wrap"><table><thead><tr><th>Loan ID</th><th>Customer</th><th>Loan Amount</th><th>Paid</th><th>Outstanding</th><th>Status</th></tr></thead><tbody>
+ ${l.map(x=>'<tr><td>'+esc(x.loan_id)+'</td><td>'+esc(c.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+money(x.loan_amount)+'</td><td>'+money(x.total_paid)+'</td><td>'+money(x.remaining_amount)+'</td><td>'+esc(x.loan_status)+'</td></tr>').join('')||'<tr><td colspan="6">No loan accounts.</td></tr>'}
+ </tbody></table></div>`;
+}
+window.exportMISReport=()=>{
+ const rows=[['Loan ID','Customer','Loan Amount','Paid','Outstanding','Status'],...(window.__HFY_LOANS||[]).map(x=>{const c=(window.__HFY_CUSTOMERS||[]).find(z=>String(z.id)===String(x.customer_id));return [x.loan_id,c?.full_name||'',x.loan_amount||0,x.total_paid||0,x.remaining_amount||0,x.loan_status||'']})];
+ const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\\n');
+ const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='hfy-mis-'+today()+'.csv';a.click();
+};
 function renderLoanAccounts(c,l){
  const el=qid('loanAccountsBody');if(!el)return;
  el.innerHTML='<div class="wrap"><table><thead><tr><th>Loan ID</th><th>Customer</th><th>Amount</th><th>Total Repayment</th><th>Paid</th><th>Outstanding</th><th>Start</th><th>Status</th><th>Action</th></tr></thead><tbody>'+
@@ -202,7 +228,10 @@ async function syncGlobals(){
    C().from('loan_repayments').select('*'),
    C().from('financial_transactions').select('*')
   ]);
-  if(q.every(x=>!x.error)){window.__HFY_CUSTOMERS=q[0].data||[];window.__HFY_LOANS=q[1].data||[];window.__HFY_APPLICATIONS=q[2].data||[];window.__HFY_PAYMENTS=q[3].data||[];window.__HFY_TRANSACTIONS=q[4].data||[]}
+  if(q.every(x=>!x.error)){window.__HFY_CUSTOMERS=q[0].data||[];window.__HFY_LOANS=q[1].data||[];window.__HFY_APPLICATIONS=q[2].data||[];window.__HFY_PAYMENTS=q[3].data||[];window.__HFY_TRANSACTIONS=q[4].data||[];
+   const e=await C().from('loan_emi_schedule').select('*');
+   window.__HFY_EMIS=e.data||[];
+  }
  }catch(e){console.warn(e)}
 }
 const origLoad=window.loadData;
