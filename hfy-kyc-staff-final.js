@@ -61,11 +61,22 @@ window.staffWallet=async i=>{
   let q=await S().from('staff_wallets').select('*').eq('staff_id',x.id).maybeSingle();if(q.error)throw q.error;
   if(!q.data){q=await S().from('staff_wallets').insert({staff_id:x.id,balance:0}).select().single();if(q.error)throw q.error}
   const w=q.data,tx=await S().from('staff_wallet_transactions').select('*').eq('staff_id',x.id).order('created_at',{ascending:false});if(tx.error)throw tx.error;
-  const rows=(tx.data||[]).map(t=>'<tr><td>'+E(t.transaction_type||'-')+'</td><td>'+M(t.recovered_amount||0)+'</td><td>'+M(t.commission_amount||0)+'</td><td>'+E(t.remarks||'')+'</td><td>'+E((t.created_at||'').slice(0,10))+'</td></tr>').join('')||'<tr><td colspan="5">No wallet transactions.</td></tr>';
-  window.openBox('Staff Wallet — '+E(x.name),'<p>Employee ID: <b>'+E(x.employee_id)+'</b></p><p>Current Balance: <b>'+M(w.balance)+'</b></p><div class="wrap"><table><tr><th>Type</th><th>Recovered</th><th>Commission</th><th>Remarks</th><th>Date</th></tr>'+rows+'</table></div>');
+  const rows=(tx.data||[]).map(t=>'<tr><td>'+E(t.transaction_type||'-')+'</td><td>'+M(t.recovered_amount||0)+'</td><td>'+M(String(t.transaction_type||'').toLowerCase()==='reward_credit'?t.commission_amount:0)+'</td><td>'+M(String(t.transaction_type||'').toLowerCase()==='reward_credit'?0:t.commission_amount)+'</td><td>'+E(t.remarks||'')+'</td><td>'+E((t.created_at||'').slice(0,10))+'</td></tr>').join('')||'<tr><td colspan="6">No wallet transactions.</td></tr>';
+  window.openBox('Staff Wallet — '+E(x.name),'<p>Employee ID: <b>'+E(x.employee_id)+'</b></p><p>Current Balance: <b>'+M(w.balance)+'</b></p><div class="actions"><button class="btn green" onclick="staffWalletReward('+x.id+')">+ Add Reward / Bonus</button></div><div class="wrap"><table><tr><th>Type</th><th>Recovered</th><th>Credit</th><th>Commission</th><th>Remarks</th><th>Date</th></tr>'+rows+'</table></div>');
  }catch(e){console.error(e);alert('Wallet error: '+(e?.message||e))}
 };
 
+window.staffWalletReward=async id=>{try{
+ const x=(window.__HFY_STAFF||[]).find(s=>String(s.id)===String(id));if(!x)return alert('Staff not found.');
+ window.openBox('Add Reward / Bonus — '+E(x.name),'<div class="form"><label>Employee ID<input value="'+E(x.employee_id)+'" readonly></label><label>Amount<input id="swr_amount" type="number" min="0.01" step="0.01" placeholder="Enter reward amount"></label><label class="full">Reason / Remarks<textarea id="swr_remarks" placeholder="Example: Good Performance"></textarea></label><div class="full"><button class="btn green" onclick="saveStaffWalletReward('+x.id+')">Add to Wallet</button></div></div>');
+}catch(e){console.error(e);alert('Reward form error: '+(e?.message||e))}};
+window.saveStaffWalletReward=async id=>{try{
+ const amount=Number(document.getElementById('swr_amount')?.value||0),remarks=document.getElementById('swr_remarks')?.value.trim()||null;
+ if(amount<=0)return alert('Enter a valid reward amount.');
+ const r=await S().rpc('hfy_admin_staff_wallet_credit',{p_staff_id:id,p_amount:amount,p_remarks:remarks});
+ if(r.error)throw r.error;
+ window.closeM();alert('₹'+amount.toFixed(2)+' reward added to staff wallet successfully.');
+}catch(e){console.error(e);alert('Reward credit failed: '+(e?.message||e))}};
 window.staffWithdraw=async i=>{
  try{
   const x=(window.__HFY_STAFF||[])[i];if(!x)return alert('Staff not found.');
