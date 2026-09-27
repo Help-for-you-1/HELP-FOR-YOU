@@ -36,6 +36,7 @@ async function loadData(){
   D.t=r[5].error?(console.error('Transactions load:',r[5].error),[]):(r[5].data||[]);
   D.s=r[6].error?(console.error('Staff load:',r[6].error),[]):(r[6].data||[]);
   D.w=r[7].error?(console.error('Wallet load:',r[7].error),[]):(r[7].data||[]);
+  window.__HFY_APPLICATIONS=D.a;window.__HFY_CUSTOMERS=D.c;window.__HFY_LOANS=D.l;window.__HFY_EMIS=D.e;window.__HFY_PAYMENTS=D.p;window.__HFY_TRANSACTIONS=D.t;window.__HFY_STAFF=D.s;window.__HFY_WALLETS=D.w;
   render();
  }catch(e){fail(e)}
 }
