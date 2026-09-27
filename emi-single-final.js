@@ -78,7 +78,7 @@ window.hfyMarkEmiUnpaid=async function(id){
  if(!id)return alert('EMI not found.');if(!confirm('Are you sure you want to mark this EMI as Unpaid? Any recorded payment linked to this EMI will be reversed.'))return;
  try{const s=db(),r=await s.rpc('hfy_mark_emi_unpaid',{p_emi_id:id});if(r.error)throw r.error;if(!r.data?.success)throw new Error('Mark Unpaid was not completed.');if(typeof closeM==='function')closeM();await refreshList();alert('EMI marked as Unpaid successfully.');}catch(e){console.error(e);alert('Mark Unpaid error: '+(e?.message||e));}
 };
-window.emiFinalPaid=window.hfyPay;window.emi30Paid=window.hfyPay;window.paid=window.hfyPay;
+window.emiFinalPaid=window.hfyPay;window.emi30Paid=window.hfyPay;window.paid=window.hfyPay;window.hfyRefreshEmiList=refreshList;
 const oldShow=window.show;window.show=(id,b)=>{if(oldShow)oldShow(id,b);if(id==='repay')setTimeout(refreshList,150);};
 const keepClosedOut=async()=>{try{const s=db(),q=await s.from('loan_accounts').select('loan_id').eq('loan_status','completed');if(q.error)throw q.error;const closed=new Set((q.data||[]).map(x=>String(x.loan_id)));const body=document.getElementById('reRows');if(!body)return;[...body.querySelectorAll('tr')].forEach(r=>{const cells=r.querySelectorAll('td');if(cells.length>1&&closed.has(String((cells[1].innerText||'').trim())))r.remove();});}catch(e){console.error('Closed loan filter:',e);}};
 setTimeout(refreshList,800);setTimeout(keepClosedOut,1600);setTimeout(keepClosedOut,3000);setInterval(keepClosedOut,5000);
