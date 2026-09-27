@@ -171,6 +171,18 @@ var oldApprovalRender=window.render;
 window.render=function(){
   if(typeof oldApprovalRender==='function')oldApprovalRender();
   window.hfyRenderApprovalOnly();
+  window.hfyRenderCustomersOnly();
+};
+window.hfyRenderCustomersOnly=function(){
+  var body=document.getElementById('cuRows'),rows=window.__HFY_CUSTOMERS||[],apps=window.__HFY_APPLICATIONS||[],loans=window.__HFY_LOANS||[];
+  if(!body)return;
+  var esc=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  var money=function(v){return '₹'+Number(v||0).toFixed(2);};
+  body.innerHTML=rows.map(function(x,i){
+    var a=apps.find(function(z){return String(z.customer_id)===String(x.id);})||{};
+    var l=loans.find(function(z){return String(z.customer_id)===String(x.id);})||{};
+    return '<tr><td>'+esc(x.full_name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc(l.loan_id||'-')+'</td><td>'+money(a.approved_amount||l.loan_amount)+'</td><td>'+esc(l.start_date||a.sanction_date||'-')+'</td><td><button class="btn blue" onclick="editCustomer('+i+')">View / Edit</button></td></tr>';
+  }).join('')||'<tr><td colspan="6">No customers found.</td></tr>';
 };
 })();
 </script>
