@@ -244,6 +244,7 @@ async function syncGlobals(){
  window.__HFY_EMIS=q[5].error?(console.warn('EMI:',q[5].error),[]):(q[5].data||[]);
 }
 window.renderPanel=renderPanel;
+window.__hfyRefreshModules=refresh;
 window.renderWithdrawals=renderWithdrawals;
 const origLoad=window.loadData;
 if(origLoad)window.loadData=async function(){const r=await origLoad.apply(this,arguments);await syncGlobals();return r};
