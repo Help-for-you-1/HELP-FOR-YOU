@@ -46,7 +46,6 @@ function bind(){
  if(!window.__HFY_REFRESH_WRAPPED){
   const original=window.show;
   window.show=function(id,b){
-   if(!restoring)setSaved(id);
    return original.apply(this,arguments);
   };
   window.__HFY_REFRESH_WRAPPED=true;
