@@ -39,6 +39,13 @@ window.viewApp=function(i){
     fld('Bank Verification','ab',x.bank_verification||'Pending')+fld('Fraud Check','af',x.fraud_check||'Pending')+
     '<label class="full">Admin Remarks<input id="ar" value="'+e(x.admin_remarks)+'"></label>'+
     '<div class="full"><button class="btn blue" onclick="saveApproval('+Number(i)+')">Save Full Form</button><button class="btn green" onclick="approve('+Number(i)+')">Approve</button><button class="btn red" onclick="reject('+Number(i)+')">Reject</button></div></div>';
+  (function(){
+    var docs=[['Identity Proof',x.identity_proof_url],['PAN Proof',x.pan_proof_url],['Address Proof',x.address_proof_url],['Bank Proof',x.bank_proof_url],['Income Proof',x.income_proof_url],['Selfie',x.selfie_url]];
+    var html='<div style="margin-top:14px;padding:12px;border:1px solid #ddd;border-radius:10px"><h3 style="margin:0 0 10px">KYC / Uploaded Documents & Photo</h3><div>';
+    docs.forEach(function(d){if(d[1]){var u=String(d[1]);try{var sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);var p=sb.storage.from('loan-documents').getPublicUrl(u);u=p&&p.data&&p.data.publicUrl||u;}catch(e){} html+='<a href="'+e(u)+'" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px 4px 0">View '+e(d[0])+'</a>'; }else{html+='<span style="color:#888;margin-right:10px">'+e(d[0])+': Not uploaded</span>';}});
+    if(x.selfie_url){var su=String(x.selfie_url);try{var sb2=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);var pp=sb2.storage.from('loan-documents').getPublicUrl(su);su=pp&&pp.data&&pp.data.publicUrl||su;}catch(e){} html+='<div style="margin-top:12px"><b>Photo</b><br><img src="'+e(su)+'" alt="Photo" style="max-width:180px;max-height:180px;border-radius:8px;margin-top:6px"></div>';}
+    html+='</div></div>';mb.innerHTML+=html;
+  })();
   var at=document.getElementById('at'),ast=document.getElementById('ast'),ak=document.getElementById('ak');
   if(at)at.value=String(x.tenure_months||1);
   if(ast)ast.value=String(x.status||'submitted').toLowerCase();
