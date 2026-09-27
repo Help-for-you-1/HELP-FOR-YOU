@@ -65,4 +65,50 @@ window.staffWallet=async i=>{
   window.openBox('Staff Wallet — '+E(x.name),'<p>Employee ID: <b>'+E(x.employee_id)+'</b></p><p>Current Balance: <b>'+M(w.balance)+'</b></p><div class="wrap"><table><tr><th>Type</th><th>Recovered</th><th>Commission</th><th>Remarks</th><th>Date</th></tr>'+rows+'</table></div>');
  }catch(e){console.error(e);alert('Wallet error: '+(e?.message||e))}
 };
+
+window.staffWithdraw=async i=>{
+ try{
+  const x=(window.__HFY_STAFF||[])[i];if(!x)return alert('Staff not found.');
+  const q=await S().from('staff_wallets').select('*').eq('staff_id',x.id).maybeSingle();if(q.error)throw q.error;
+  const balance=Number(q.data?.balance||0);
+  window.openBox('Withdrawal Request — '+E(x.name),`<div class="form">
+   <label>Employee ID<input value="${E(x.employee_id)}" readonly></label>
+   <label>Available Balance<input value="${M(balance)}" readonly></label>
+   <label>Withdrawal Amount<input id="sw_amount" type="number" min="0.01" max="${balance}" step="0.01" placeholder="Enter amount"></label>
+   <label class="full">Remarks<textarea id="sw_remarks" placeholder="Optional"></textarea></label>
+   <div class="full"><button class="btn green" onclick="submitStaffWithdrawal(${x.id})">Submit Withdrawal Request</button></div>
+  </div>`);
+ }catch(e){console.error(e);alert('Withdrawal request error: '+(e?.message||e))}
+};
+window.submitStaffWithdrawal=async id=>{
+ try{
+  const amount=Number(document.getElementById('sw_amount')?.value||0),remarks=document.getElementById('sw_remarks')?.value.trim()||null;
+  if(amount<=0)return alert('Enter a valid withdrawal amount.');
+  const q=await S().from('staff_wallets').select('balance').eq('staff_id',id).maybeSingle();if(q.error)throw q.error;
+  const balance=Number(q.data?.balance||0);if(amount>balance)return alert('Withdrawal amount cannot exceed available balance.');
+  const p=await S().from('staff_wallet_withdrawals').insert({staff_id:id,amount,status:'pending',remarks}).select().single();if(p.error)throw p.error;
+  window.closeM();alert('Withdrawal request submitted successfully.');
+ }catch(e){console.error(e);alert('Withdrawal request error: '+(e?.message||e))}
+};
+window.staffWithdrawals=async()=>{
+ try{
+  const q=await S().from('staff_wallet_withdrawals').select('*').order('requested_at',{ascending:false});if(q.error)throw q.error;
+  const rows=q.data||[],staff=window.__HFY_STAFF||[];
+  window.openBox('Staff Withdrawal Requests','<div class="wrap"><table><tr><th>Employee</th><th>Amount</th><th>Status</th><th>Remarks</th><th>Requested</th><th>Action</th></tr>'+
+   (rows.map(w=>{const x=staff.find(s=>String(s.id)===String(w.staff_id));return '<tr><td>'+E(x?.name||w.staff_id)+'</td><td>'+M(w.amount)+'</td><td>'+E(w.status)+'</td><td>'+E(w.remarks||'')+'</td><td>'+E((w.requested_at||'').slice(0,10))+'</td><td>'+(['pending'].includes(w.status)?'<button class="btn green" onclick="reviewStaffWithdrawal('+w.id+',\'approved\')">Approve</button> <button class="btn red" onclick="reviewStaffWithdrawal('+w.id+',\'rejected\')">Reject</button>':'-')+'</td></tr>'}).join('')||'<tr><td colspan="6">No withdrawal requests.</td></tr>')+'</table></div>');
+ }catch(e){console.error(e);alert('Withdrawal list error: '+(e?.message||e))}
+};
+window.reviewStaffWithdrawal=async(id,status)=>{
+ try{
+  const q=await S().from('staff_wallet_withdrawals').select('*').eq('id',id).maybeSingle();if(q.error)throw q.error;if(!q.data)return alert('Withdrawal request not found.');
+  if(q.data.status!=='pending')return alert('This request is already reviewed.');
+  if(status==='approved'){
+   const w=await S().from('staff_wallets').select('balance').eq('staff_id',q.data.staff_id).maybeSingle();if(w.error)throw w.error;
+   if(Number(w.data?.balance||0)<Number(q.data.amount||0))return alert('Insufficient staff wallet balance.');
+   const u=await S().from('staff_wallets').update({balance:Number(w.data.balance)-Number(q.data.amount),updated_at:new Date().toISOString()}).eq('staff_id',q.data.staff_id);if(u.error)throw u.error;
+  }
+  const u=await S().from('staff_wallet_withdrawals').update({status,reviewed_at:new Date().toISOString()}).eq('id',id);if(u.error)throw u.error;
+  window.closeM();alert('Withdrawal request '+status+'.');
+ }catch(e){console.error(e);alert('Withdrawal review error: '+(e?.message||e))}
+};
 })();
