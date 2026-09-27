@@ -13,7 +13,7 @@ const customers=()=>window.__HFY_CUSTOMERS||[];
 const loans=()=>window.__HFY_LOANS||[];
 function maps(){
  const c=new Map(customers().map(x=>[String(x.id),x]));
- const l=new Map((loans().map(x=>[String(x.id),x]));
+ const l=new Map(loans().map(x=>[String(x.id),x]));
  return {c,l};
 }
 function modal(title,html){if(typeof openBox==='function')openBox(title,html)}
