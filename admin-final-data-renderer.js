@@ -23,7 +23,20 @@ async function loadCore(){
   window.__HFY_STAFF=pick(s);
   window.__HFY_WALLETS=pick(w);
   if(typeof window.render==='function')window.render();
+  renderAppsDirect();
   return true;
+}
+function renderAppsDirect(){
+  const body=document.getElementById('appsRows');
+  const rows=window.__HFY_APPLICATIONS||[];
+  if(!body)return;
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money=v=>'₹'+Number(v||0).toFixed(2);
+  body.innerHTML=(rows.map((x,i)=>{
+    const s=String(x.status||'').toLowerCase();
+    const cls=s==='approved'?'paid':(s==='rejected'?'over':(['draft','submitted','pending','under_review'].includes(s)?'pending':''));
+    return '<tr><td>'+esc(x.id??'-')+'</td><td>'+esc(x.full_name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc((x.applied_at||x.created_at||'').slice(0,10))+'</td><td>'+money(x.requested_amount||0)+'</td><td class="'+cls+'">'+esc(x.status||'-')+'</td><td><button class="btn gray" onclick="viewApp('+i+')">View</button></td></tr>';
+  }).join('')||'<tr><td colspan="7">No applications found.</td></tr>');
 }
 async function loadModules(){
   if(typeof window.__hfyRefreshModules==='function'){
@@ -63,7 +76,7 @@ function bind(){
       activate(id,el);
       await refresh();
       try{
-        if(id==='apps'&&typeof window.loadApplications==='function')await window.loadApplications();
+        if(id==='apps'){renderAppsDirect();if(typeof window.loadApplications==='function')await window.loadApplications();renderAppsDirect();}
         else if(['reports','loanaccounts','autopay','collections','risk','documents','accounting','audit','notifications','settings'].includes(id)&&typeof window.renderPanel==='function')window.renderPanel(id);
         else if(id==='withdrawals'&&typeof window.renderWithdrawals==='function')await window.renderWithdrawals();
         else if(['dash','approval','customers','repay'].includes(id)&&typeof window.renderCore==='function')window.renderCore();
