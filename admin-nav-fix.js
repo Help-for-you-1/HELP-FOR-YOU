@@ -23,7 +23,8 @@ function bind(){
     if(id==='transactions'&&typeof window.renderTransactions==='function')window.renderTransactions();
     if(id==='overdue'&&typeof window.renderOverdue==='function')window.renderOverdue();
     if(id==='staff'&&typeof window.renderStaff==='function')window.renderStaff();
-    if(['dash','customers','approval','repay'].includes(id)&&typeof window.renderCore==='function')window.renderCore();\n   if(id==='approval'&&typeof window.hfyRenderApprovalOnly==='function')window.hfyRenderApprovalOnly();
+    if(['dash','customers','approval','repay'].includes(id)&&typeof window.renderCore==='function')window.renderCore();
+    if(id==='approval'&&typeof window.hfyRenderApprovalOnly==='function')window.hfyRenderApprovalOnly();
     if(id==='apps'&&typeof window.loadApplications==='function')window.loadApplications();
    }catch(e){console.error('HFY Admin option error',id,e);}
    return false;
