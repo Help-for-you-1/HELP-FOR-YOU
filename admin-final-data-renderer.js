@@ -50,6 +50,13 @@ function renderCustomersFunctional(){
   }).join('')||'<tr><td colspan="6">No '+(type==='closed'?'closed':'active')+' customers found.</td></tr>';
 }
 window.hfyRenderCustomersFunctional=renderCustomersFunctional;
+window.hfyCustomerType=function(type){
+  window.__HFY_CUSTOMER_TYPE=type==='closed'?'closed':'active';
+  const ab=document.getElementById('cuActiveBtn'),cb=document.getElementById('cuClosedBtn');
+  if(ab)ab.className='btn '+(window.__HFY_CUSTOMER_TYPE==='active'?'blue':'gray');
+  if(cb)cb.className='btn '+(window.__HFY_CUSTOMER_TYPE==='closed'?'blue':'gray');
+  renderCustomersFunctional();
+};
 function renderAppsDirect(){
   const body=document.getElementById('appsRows');
   const rows=window.__HFY_APPLICATIONS||[];
