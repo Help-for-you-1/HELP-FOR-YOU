@@ -150,4 +150,28 @@ window.approve=async function(i){
   }catch(e){console.error(e);alert('Approval error: '+(e?.message||e));}
 };
 })();
-</script></script></body></html>
+</script></script>
+<script>
+(function(){
+'use strict';
+window.hfyRenderApprovalOnly=function(){
+  var body=document.getElementById('apRows');
+  var rows=window.__HFY_APPLICATIONS||[];
+  if(!body)return;
+  var esc=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  var money=function(v){return '₹'+Number(v||0).toFixed(2);};
+  var out=rows.filter(function(x){return String(x.status||'').trim().toLowerCase()!=='approved';}).map(function(x){
+    var i=rows.indexOf(x),s=String(x.status||'pending').trim();
+    var cls=s.toLowerCase()==='rejected'?'over':'pending';
+    return '<tr><td>'+esc(x.full_name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc((x.applied_at||x.created_at||'').slice(0,10))+'</td><td>'+money(x.requested_amount)+'</td><td>'+money(x.approved_amount)+'</td><td class="'+cls+'">'+esc(s)+'</td><td><button class="btn blue" onclick="editApproval('+i+')">Edit</button></td></tr>';
+  }).join('');
+  body.innerHTML=out||'<tr><td colspan="7">No applications available for approval.</td></tr>';
+};
+var oldApprovalRender=window.render;
+window.render=function(){
+  if(typeof oldApprovalRender==='function')oldApprovalRender();
+  window.hfyRenderApprovalOnly();
+};
+})();
+</script>
+</body></html>
