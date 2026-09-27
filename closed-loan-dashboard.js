@@ -18,5 +18,11 @@ async function loadClosedLoans(){
 }
 window.loadClosedLoans=loadClosedLoans;
 setTimeout(loadClosedLoans,900);
-const oldShow=window.show;window.show=(id,b)=>{if(oldShow)oldShow(id,b);if(id==='dash')setTimeout(loadClosedLoans,150);};
+/* Rebuild dashboard data after the final navigation script has bound on refresh. */
+setTimeout(()=>{try{
+ if(typeof window.renderCore==='function')window.renderCore();
+ if(typeof window.loadClosedLoans==='function')window.loadClosedLoans();
+ if(typeof window.loadCreditReport==='function')window.loadCreditReport();
+}catch(e){console.error('HFY Dashboard restore error',e)}},1800);
+const oldShow=window.show;window.show=(id,b)=>{if(oldShow)oldShow(id,b);if(id==='dash')setTimeout(()=>{if(typeof window.renderCore==='function')window.renderCore();loadClosedLoans();if(typeof window.loadCreditReport==='function')window.loadCreditReport()},150);};
 })();
