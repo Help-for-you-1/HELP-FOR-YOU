@@ -35,6 +35,13 @@ function restore(){
  setTimeout(()=>{restoring=false},150);
 }
 function bind(){
+ document.addEventListener('click',function(ev){
+  const el=ev.target&&ev.target.closest?ev.target.closest('.side .m'):null;
+  if(!el)return;
+  const raw=el.getAttribute('onclick')||'';
+  const m=raw.match(/show\(['\"]([^'\"]+)['\"]/);
+  if(m&&!restoring)setSaved(m[1]);
+ },true);
  if(typeof window.show!=='function'){setTimeout(bind,100);return}
  if(!window.__HFY_REFRESH_WRAPPED){
   const original=window.show;
