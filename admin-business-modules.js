@@ -44,6 +44,12 @@ function addPanel(id,html=''){
  const p=document.createElement('section');p.id=id;p.className='panel';p.innerHTML=html;
  document.querySelector('main.main')?.appendChild(p);
 }
+function ensureActions(id,html,marker){
+ const p=qid(id); if(!p||p.querySelector('[data-hfy-action="'+marker+'"]')) return;
+ const body=p.querySelector('[id$="Body"]');
+ const wrap=document.createElement('div'); wrap.className='actions'; wrap.dataset.hfyAction=marker; wrap.innerHTML=html;
+ body?p.insertBefore(wrap,body):p.appendChild(wrap);
+}
 function setup(){
  addNav('loanaccounts','💼 Loan Accounts');
  addNav('autopay','🔐 AutoPay / Mandate');
@@ -56,13 +62,17 @@ function setup(){
  addNav('settings','⚙️ Settings');
  addPanel('loanaccounts','<h2>Loan Accounts</h2><div id="loanAccountsBody">Loading...</div>');
  addPanel('autopay','<h2>AutoPay / Mandate</h2><div id="mandatesBody">Loading...</div>');
- addPanel('collections','<h2>Collections / Recovery</h2><div class="actions"><button class="btn blue" onclick="addCollectionCase()">+ Add Follow-up</button></div><div id="collectionsBody">Loading...</div>');
+ addPanel('collections','<h2>Collections / Recovery</h2><div id="collectionsBody">Loading...</div>');
  addPanel('risk','<h2>Credit / Risk</h2><p class="creditNotice">Internal repayment-risk information only; not an official credit-bureau report.</p><div id="riskBody">Loading...</div>');
  addPanel('documents','<h2>Documents</h2><div id="documentsBody">Loading...</div>');
  addPanel('accounting','<h2>Accounting / Ledger</h2><div id="accountingBody">Loading...</div>');
  addPanel('audit','<h2>Audit Log</h2><div id="auditBody">Loading...</div>');
- addPanel('notifications','<h2>Notifications</h2><div class="actions"><button class="btn blue" onclick="addNotification()">+ Create Notification</button></div><div id="notificationsBody">Loading...</div>');
+ addPanel('notifications','<h2>Notifications</h2><div id="notificationsBody">Loading...</div>');
  addPanel('settings','<h2>Settings & Loan Products</h2><div id="settingsBody">Loading...</div>');
+ ensureActions('autopay','<button class="btn blue" onclick="addMandate()">+ Add Mandate</button>','autopay-add');
+ ensureActions('collections','<button class="btn blue" onclick="addCollectionCase()">+ Add Follow-up</button>','collections-add');
+ ensureActions('risk','<button class="btn blue" onclick="addRisk()">+ Add Risk Review</button>','risk-add');
+ ensureActions('notifications','<button class="btn blue" onclick="addNotification()">+ Create Notification</button>','notifications-add');
  const oldShow=window.show;
  window.show=function(id,b){oldShow(id,b);if(['loanaccounts','autopay','collections','risk','documents','accounting','audit','notifications','settings'].includes(id))renderPanel(id)};
  window.__hfyAdminModulesReady=true;
