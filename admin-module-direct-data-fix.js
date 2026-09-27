@@ -28,7 +28,7 @@ function renderCorePanels(){
  const tr=document.getElementById('transactions');
  if(tr)tr.innerHTML='<h2>Transactions</h2><div class="wrap"><table><thead><tr><th>Transaction ID</th><th>Customer</th><th>Loan ID</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>'+(tx.map(x=>'<tr><td>'+esc(x.transaction_id||x.id)+'</td><td>'+esc(c.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+esc(x.loan_id||'-')+'</td><td>'+esc(x.transaction_type||'-')+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.status||'-')+'</td><td>'+esc((x.transaction_date||'').slice(0,10))+'</td></tr>').join('')||'<tr><td colspan="7">No transactions found.</td></tr>')+'</tbody></table></div>';
  const st=document.getElementById('staff');
- if(st)st.innerHTML='<h2>Staff/Admin</h2><div class="wrap"><table><thead><tr><th>Employee ID</th><th>Name</th><th>Mobile</th><th>Role</th><th>Status</th></tr></thead><tbody>'+(staff.map(x=>'<tr><td>'+esc(x.employee_id||'-')+'</td><td>'+esc(x.name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc(x.role||'-')+'</td><td>'+esc(x.status||'-')+'</td></tr>').join('')||'<tr><td colspan="5">No staff records found.</td></tr>')+'</tbody></table></div>';
+ if(st)st.innerHTML='<h2>Staff/Admin</h2><div class="wrap"><table><thead><tr><th>Employee ID</th><th>Name</th><th>Mobile</th><th>Role</th><th>Status</th><th>Manage</th></tr></thead><tbody>'+(staff.map((x,i)=>'<tr><td>'+esc(x.employee_id||'-')+'</td><td>'+esc(x.name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc(x.role||'-')+'</td><td>'+esc(x.status||'-')+'</td><td><button class="btn blue" onclick="manageStaff('+i+')">Manage</button><button class="btn green" onclick="staffWallet('+i+')">Wallet</button></td></tr>').join('')||'<tr><td colspan="6">No staff records found.</td></tr>'')+'</tbody></table></div>';
  const ov=document.getElementById('ovRows');
  if(ov)ov.innerHTML=(emis.filter(x=>x.status!=='paid'&&Number(x.remaining_amount||0)>0).map(x=>'<tr><td>'+esc(x.loan_id)+'</td><td>'+esc(c.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+money(x.emi_amount)+'</td><td>'+esc(x.due_date||'-')+'</td><td>'+money(x.penalty)+'</td><td>'+money(x.remaining_amount)+'</td><td>—</td></tr>').join('')||'<tr><td colspan="7">No overdue EMI records found.</td></tr>');
 }
@@ -38,6 +38,7 @@ async function refresh(){
  try{
   if(window.hfyAdminReady){const ok=await window.hfyAdminReady;if(!ok)return}
   if(typeof window.loadData==='function')await window.loadData();
+  if(!(window.__HFY_STAFF||[]).length){const freshStaff=await get('staff','created_at');window.__HFY_STAFF=freshStaff;}
   renderCorePanels();
   if(typeof window.renderPanel==='function')MODULES.forEach(id=>{try{window.renderPanel(id)}catch(e){console.warn('HFY module render',id,e)}});
  }catch(e){console.error('HFY final module refresh',e)}
