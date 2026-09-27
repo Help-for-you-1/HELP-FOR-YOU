@@ -92,7 +92,21 @@ function bind(){
         if(id==='apps'){renderAppsDirect();if(typeof window.loadApplications==='function')await window.loadApplications();renderAppsDirect();}
         else if(['reports','loanaccounts','autopay','collections','risk','documents','accounting','audit','notifications','settings'].includes(id)&&typeof window.renderPanel==='function')window.renderPanel(id);
         else if(id==='withdrawals'&&typeof window.renderWithdrawals==='function')await window.renderWithdrawals();
-        else if(['dash','approval','customers','repay'].includes(id)&&typeof window.renderCore==='function')window.renderCore();
+        else if(['dash','customers','repay'].includes(id)&&typeof window.renderCore==='function')window.renderCore();
+        else if(id==='approval'){
+          if(typeof window.renderCore==='function')window.renderCore();
+          setTimeout(function(){
+            const body=document.getElementById('apRows');
+            const rows=window.__HFY_APPLICATIONS||[];
+            if(!body)return;
+            const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+            const money=v=>'₹'+Number(v||0).toFixed(2);
+            body.innerHTML=rows.filter(x=>String(x.status||'').toLowerCase()!=='approved').map(x=>{
+              const i=rows.indexOf(x),s=String(x.status||'pending').toLowerCase();
+              return '<tr><td>'+esc(x.full_name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc((x.applied_at||x.created_at||'').slice(0,10))+'</td><td>'+money(x.requested_amount)+'</td><td>'+money(x.approved_amount)+'</td><td>'+esc(s)+'</td><td><select data-index="'+i+'" onchange="hfyChangeApprovalStatus(this)"><option value="approved"'+(s==='approved'?' selected':'')+'>Approved</option><option value="rejected"'+(s==='rejected'?' selected':'')+'>Rejected</option><option value="under_review"'+(s==='under_review'?' selected':'')+'>Under Review</option><option value="pending"'+(s==='pending'?' selected':'')+'>Pending</option></select></td></tr>';
+            }).join('')||'<tr><td colspan="7">No applications available for approval.</td></tr>';
+          },100);
+        }
         else if(id==='staff'&&typeof window.renderStaff==='function')window.renderStaff();
         else if(['payments','transactions','overdue'].includes(id)&&typeof window.render==='function')window.render();
       }catch(e){console.error('HFY final navigation',id,e)}
