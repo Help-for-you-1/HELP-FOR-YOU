@@ -13,6 +13,10 @@ function findButton(id){
 }
 function restore(){
  if(restoring)return;
+ try{sessionStorage.removeItem(KEY)}catch(e){}
+ return;
+ /*
+ if(restoring)return;
  const id=getSaved();
  if(!id||!document.getElementById(id))return;
  const btn=findButton(id);
@@ -30,6 +34,7 @@ function restore(){
   }
  }catch(e){console.error('HFY refresh restore',e)}
  setTimeout(()=>{restoring=false},150);
+ */
 }
 function bind(){
  if(typeof window.show!=='function'){setTimeout(bind,100);return}
