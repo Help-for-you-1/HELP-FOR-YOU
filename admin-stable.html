@@ -63,4 +63,91 @@ window.closeM=function(){
 };
 window.oldload=window.loadData;
 })();
-</script></body></html>
+<script>
+(function(){
+'use strict';
+window.approve=async function(i){
+  try{
+    var rows=window.__HFY_APPLICATIONS||[],x=rows[Number(i)];
+    if(!x)return alert('Application not found.');
+    var g=function(id){return document.getElementById(id);};
+    var sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+    var requested=Number(g('arq')?.value||x.requested_amount||0);
+    var approved=Number(g('aa')?.value||x.approved_amount||requested||0);
+    var tenure=Number(g('at')?.value||x.tenure_months||1);
+    if(requested<1000||requested>20000)return alert('Request loan amount must be ₹1,000 to ₹20,000.');
+    if(approved<1000||approved>20000)return alert('Sanction loan amount must be ₹1,000 to ₹20,000.');
+    if(!tenure)return alert('Tenure is required.');
+    var total=approved*(1+0.20*tenure),monthly=total/tenure,daily=monthly/30;
+    var start=(g('asd')?.value||x.sanction_date||new Date().toISOString().slice(0,10));
+    var end=new Date(start+'T00:00:00');end.setDate(end.getDate()+tenure*30);end=end.toISOString().slice(0,10);
+    var p={
+      full_name:g('an')?.value.trim()||x.full_name,
+      mobile:g('am')?.value.trim()||x.mobile,
+      email:g('ae')?.value||null,
+      date_of_birth:g('ad')?.value||null,
+      gender:g('ag')?.value||null,
+      parent_name:g('apn')?.value||null,
+      address:g('ax')?.value||null,
+      house:g('ah')?.value||null,
+      street:g('astreet')?.value||null,
+      village:g('av')?.value||null,
+      post_office:g('apo')?.value||null,
+      city:g('acity')?.value||null,
+      district:g('adi')?.value||null,
+      state:g('as')?.value||null,
+      pincode:g('ap')?.value||null,
+      pan_number:g('apan')?.value||null,
+      aadhaar_number:g('aad')?.value||null,
+      bank_account:g('aba')?.value||null,
+      ifsc_code:g('aifsc')?.value||null,
+      occupation:g('ao')?.value||null,
+      monthly_income:Number(g('ai')?.value||0)||null,
+      loan_type:g('alt')?.value||null,
+      loan_purpose:g('alp')?.value||null,
+      requested_amount:requested,
+      approved_amount:approved,
+      loan_amount:approved,
+      tenure_months:tenure,
+      interest_rate:20,
+      emi_amount:monthly,
+      daily_emi:daily,
+      total_interest:total-approved,
+      total_repayment:total,
+      sanction_date:start,
+      status:'approved',
+      kyc_status:g('ak')?.value||x.kyc_status||'Pending',
+      bank_verification:g('ab')?.value||'Pending',
+      fraud_check:g('af')?.value||'Pending',
+      admin_remarks:g('ar')?.value||null,
+      updated_at:new Date().toISOString()
+    };
+    var r=await sb.from('loan_applications').update(p).eq('id',x.id);
+    if(r.error)throw r.error;
+    var cid=x.customer_id;
+    var cp={full_name:p.full_name,mobile:p.mobile,email:p.email,date_of_birth:p.date_of_birth,occupation:p.occupation,monthly_income:p.monthly_income,address:p.address,district:p.district,state:p.state,pincode:p.pincode,pan_number:p.pan_number,aadhaar_number:p.aadhaar_number,kyc_status:p.kyc_status,status:'active',updated_at:new Date().toISOString()};
+    if(cid){r=await sb.from('customers').update(cp).eq('id',cid);if(r.error)throw r.error;}
+    else{r=await sb.from('customers').insert(cp).select('id').single();if(r.error)throw r.error;cid=r.data.id;}
+    var q=await sb.from('loan_accounts').select('*').eq('application_id',x.id).maybeSingle();
+    if(q.error)throw q.error;
+    var loan=q.data;
+    if(!loan){
+      r=await sb.from('loan_accounts').insert({application_id:x.id,customer_id:cid,loan_amount:approved,total_repayment:total,tenure_months:tenure,daily_emi:daily,total_paid:0,remaining_amount:total,penalty_amount:0,loan_status:'active',start_date:start,end_date:end}).select('*').single();
+      if(r.error)throw r.error;loan=r.data;
+    }else{
+      r=await sb.from('loan_accounts').update({customer_id:cid,loan_amount:approved,total_repayment:total,tenure_months:tenure,daily_emi:daily,remaining_amount:total,loan_status:'active',start_date:start,end_date:end}).eq('id',loan.id);
+      if(r.error)throw r.error;
+    }
+    var count=await sb.from('loan_emi_schedule').select('id',{count:'exact',head:true}).eq('loan_account_id',loan.id);
+    if(count.error)throw count.error;
+    if(!count.count){
+      var em=[];for(var n=1;n<=tenure*30;n++){var d=new Date(start+'T00:00:00');d.setDate(d.getDate()+n);em.push({loan_account_id:loan.id,loan_id:loan.loan_id,customer_id:cid,emi_number:n,due_date:d.toISOString().slice(0,10),emi_amount:daily,penalty:0,paid_amount:0,status:'pending'});}
+      r=await sb.from('loan_emi_schedule').insert(em);if(r.error)throw r.error;
+    }
+    var m=document.getElementById('modal');if(m)m.classList.remove('on');
+    await window.loadData();
+    alert('Approved successfully. Loan ID '+loan.loan_id+' generated and EMI schedule created.');
+  }catch(e){console.error(e);alert('Approval error: '+(e?.message||e));}
+};
+})();
+</script></script></body></html>
