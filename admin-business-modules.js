@@ -43,13 +43,34 @@ async function renderAudit(){
 async function renderSettings(){
  const el=qid('settingsBody');
  if(!el)return;
- el.innerHTML='<p>Loading loan products...</p>';
+ el.innerHTML='<p>Loading settings...</p>';
  const r=await C().from('loan_products').select('*').order('id');
- if(r.error){console.error('Settings load:',r.error);el.innerHTML='<p>Unable to load loan products.</p>';return}
+ if(r.error){console.error('Settings load:',r.error);el.innerHTML='<p>Unable to load settings.</p>';return}
  M.products=r.data||[];
+ const logo=window.HFY_LOGO_URL||'hfy-logo.svg';
  const rows=M.products.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+money(x.min_amount)+'</td><td>'+money(x.max_amount)+'</td><td>'+esc(x.tenure_months)+'</td><td>'+esc(x.interest_rate)+'%</td><td>'+money(x.processing_fee)+'</td><td>'+esc(x.penalty_percent)+'%</td><td>'+esc(x.emi_frequency)+'</td><td>'+((x.active)?'Active':'Inactive')+'</td><td><button class="btn blue" onclick="editLoanProduct('+Number(x.id)+')">Edit</button></td></tr>').join('')||'<tr><td colspan="10">No loan products found.</td></tr>';
- el.innerHTML='<div class="actions"><button class="btn blue" onclick="addLoanProduct()">+ Add Loan Product</button><button class="btn gray" onclick="renderSettings()">Refresh</button></div><div class="wrap"><table><thead><tr><th>Name</th><th>Min Amount</th><th>Max Amount</th><th>Tenure</th><th>Interest</th><th>Processing Fee</th><th>Penalty</th><th>Frequency</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+ el.innerHTML='<div class="wrap" style="margin-bottom:18px"><div style="padding:16px;border:1px solid #e2e8f0;border-radius:12px"><h3 style="margin-top:0">Website Logo</h3><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><img id="hfySettingsLogoPreview" src="'+esc(logo)+'" alt="HELP FOR YOU Logo" style="width:72px;height:72px;object-fit:contain;border:1px solid #ddd;border-radius:8px;padding:4px"><input id="hfyLogoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><button class="btn blue" onclick="changeHfyLogo()">Change Logo</button></div><small style="display:block;margin-top:8px">Changing the logo here updates the logo used across HELP FOR YOU pages.</small></div></div><div class="actions"><button class="btn blue" onclick="addLoanProduct()">+ Add Loan Product</button><button class="btn gray" onclick="renderSettings()">Refresh</button></div><div class="wrap"><table><thead><tr><th>Name</th><th>Min Amount</th><th>Max Amount</th><th>Tenure</th><th>Interest</th><th>Processing Fee</th><th>Penalty</th><th>Frequency</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+ const file=qid('hfyLogoFile'),preview=qid('hfySettingsLogoPreview');
+ if(file&&preview)file.onchange=()=>{const f=file.files&&file.files[0];if(f)preview.src=URL.createObjectURL(f)};
 }
+window.changeHfyLogo=async()=>{
+ try{
+  const input=qid('hfyLogoFile'),file=input&&input.files&&input.files[0];
+  if(!file)return alert('Please select a logo image.');
+  if(file.size>5*1024*1024)return alert('Logo file must be 5 MB or smaller.');
+  const ext=(file.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
+  const path='site-logo/logo-'+Date.now()+'.'+ext;
+  const up=await C().storage.from('hfy-assets').upload(path,file,{contentType:file.type||undefined,upsert:false});
+  if(up.error)throw up.error;
+  const save=await C().from('hfy_app_settings').upsert({key:'logo_url',value:path,updated_at:new Date().toISOString()});
+  if(save.error)throw save.error;
+  const url=C().storage.from('hfy-assets').getPublicUrl(path).data.publicUrl;
+  window.HFY_LOGO_URL=url;
+  if(window.HFY_APPLY_LOGO)window.HFY_APPLY_LOGO(url);
+  const preview=qid('hfySettingsLogoPreview');if(preview)preview.src=url;
+  alert('Logo changed successfully. All HELP FOR YOU pages will use the new logo.');
+ }catch(e){console.error('Logo change:',e);alert('Logo change failed: '+(e?.message||e))}
+};
 function productForm(x){
  return '<div class="form"><label>Name<input id="lpname" value="'+esc(x?.name||'')+'"></label><label>Min Amount<input id="lpmin" type="number" value="'+Number(x?.min_amount??1000)+'"></label><label>Max Amount<input id="lpmax" type="number" value="'+Number(x?.max_amount??20000)+'"></label><label>Tenure (Months)<input id="lptenure" type="number" min="1" value="'+Number(x?.tenure_months??1)+'"></label><label>Interest Rate %<input id="lpinterest" type="number" step="0.01" value="'+Number(x?.interest_rate??20)+'"></label><label>Processing Fee<input id="lppfee" type="number" step="0.01" value="'+Number(x?.processing_fee??0)+'"></label><label>Penalty %<input id="lppenalty" type="number" step="0.01" value="'+Number(x?.penalty_percent??2)+'"></label><label>EMI Frequency<select id="lpfreq"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label><label>Active<select id="lpactive"><option value="true">Active</option><option value="false">Inactive</option></select></label><div class="full"><button class="btn green" onclick="'+(x?'updateLoanProduct('+Number(x.id)+')':'saveLoanProduct()')+'">Save</button></div></div>';
 }
