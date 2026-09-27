@@ -25,7 +25,7 @@ function bind(){
     if(id==='overdue'&&typeof window.renderOverdue==='function')window.renderOverdue();
     if(id==='staff'&&typeof window.renderStaff==='function')window.renderStaff();
     if(id==='customers'&&typeof window.render==='function')window.render();
-    if(id==='apps'&&typeof window.render==='function')window.render();
+    if(id==='apps'&&typeof window.loadApplications==='function')window.loadApplications();
     if(id==='approval'&&typeof window.render==='function')window.render();
     if(id==='repay'&&typeof window.render==='function')window.render();
    }catch(e){console.error('HFY Admin option error',id,e);}
