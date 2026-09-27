@@ -149,7 +149,7 @@ function bind(){
           },100);
         }
         else if(id==='staff'&&typeof window.renderStaff==='function')window.renderStaff();
-        else if(['payments','transactions','overdue'].includes(id)&&typeof window.render==='function')window.render();
+        else if(id==='payments'){if(typeof window.render==='function')window.render();if(typeof window.renderPayments==='function')window.renderPayments();activate('payments',el);}
       }catch(e){console.error('HFY final navigation',id,e)}
       return false;
     };
