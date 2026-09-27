@@ -13,28 +13,26 @@ function findButton(id){
 }
 function restore(){
  if(restoring)return;
- try{sessionStorage.removeItem(KEY)}catch(e){}
- return;
- /*
- if(restoring)return;
  const id=getSaved();
  if(!id||!document.getElementById(id))return;
  const btn=findButton(id);
  if(!btn)return;
  restoring=true;
  try{
-  if(id==='dash'){
-   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
-   document.getElementById('dash').classList.add('on');
-   document.querySelectorAll('.side .m').forEach(x=>x.classList.remove('on'));
-   btn.classList.add('on');
-   if(typeof window.renderFinalDashboard==='function')setTimeout(()=>window.renderFinalDashboard(),50);
-  }else if(typeof window.show==='function'){
-   window.show(id,btn);
-  }
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  document.querySelectorAll('.side .m').forEach(x=>x.classList.remove('on'));
+  btn.classList.add('on');
+  if(typeof window.renderPanel==='function'&&['loanaccounts','autopay','collections','risk','documents','accounting','audit','notifications','settings'].includes(id))window.renderPanel(id);
+  else if(typeof window.renderCore==='function'&&['dash','customers','approval','repay'].includes(id))window.renderCore();
+  else if(id==='payments'&&typeof window.renderPayments==='function')window.renderPayments();
+  else if(id==='transactions'&&typeof window.renderTransactions==='function')window.renderTransactions();
+  else if(id==='overdue'&&typeof window.renderOverdue==='function')window.renderOverdue();
+  else if(id==='staff'&&typeof window.renderStaff==='function')window.renderStaff();
+  else if(id==='withdrawals'&&typeof window.renderWithdrawals==='function')window.renderWithdrawals();
+  else if(id==='apps'&&typeof window.loadApplications==='function')window.loadApplications();
  }catch(e){console.error('HFY refresh restore',e)}
  setTimeout(()=>{restoring=false},150);
- */
 }
 function bind(){
  if(typeof window.show!=='function'){setTimeout(bind,100);return}
