@@ -226,7 +226,7 @@ window.hfyChangeApprovalStatus=async function(el){
     if(r.error)throw r.error;
     if(!r.data||!r.data.length)throw new Error('Status update was not permitted.');
     x.status=status;
-    if(typeof window.loadData==='function')await window.loadData();
+    if(typeof window.hfyRenderApprovalOnly==='function')window.hfyRenderApprovalOnly();
   }catch(e){
     console.error(e);
     alert('Status update failed: '+(e&&e.message||e));
