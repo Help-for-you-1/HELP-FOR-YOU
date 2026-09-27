@@ -42,6 +42,7 @@ window.viewApp=function(i){
   const rows=window.__HFY_APPLICATIONS||[];
   const x=rows[i];
   if(!x)return alert('Application not found.');
+  if(typeof window.editApproval==='function'){ window.editApproval(i); return; }
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=v=>'₹'+Number(v||0).toFixed(2);
   const d=document.getElementById('modal'),mt=document.getElementById('mt'),mb=document.getElementById('mb');
