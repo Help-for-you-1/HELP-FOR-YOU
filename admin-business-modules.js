@@ -26,9 +26,13 @@ async function getAll(){
   C().from('loan_risk_assessments').select('*').order('created_at',{ascending:false}),
   C().from('audit_logs').select('*').order('created_at',{ascending:false}).limit(200)
  ];
- const r=await Promise.all(qs);
- for(const x of r) if(x.error) throw x.error;
- M.products=r[0].data||[];M.mandates=r[1].data||[];M.collections=r[2].data||[];M.notifications=r[3].data||[];M.risks=r[4].data||[];M.audits=r[5].data||[];
+ const r=await Promise.all(qs.map(p=>p.catch(error=>({data:[],error}))));
+ M.products=r[0].error?(console.warn('Loan products:',r[0].error),[]):(r[0].data||[]);
+ M.mandates=r[1].error?(console.warn('Mandates:',r[1].error),[]):(r[1].data||[]);
+ M.collections=r[2].error?(console.warn('Collections:',r[2].error),[]):(r[2].data||[]);
+ M.notifications=r[3].error?(console.warn('Notifications:',r[3].error),[]):(r[3].data||[]);
+ M.risks=r[4].error?(console.warn('Risk:',r[4].error),[]):(r[4].data||[]);
+ M.audits=r[5].error?(console.warn('Audit:',r[5].error),[]):(r[5].data||[]);
 }
 async function refresh(){
  try{await getAll();renderCurrent()}catch(e){console.error('Admin modules',e);if(e?.message)console.warn(e.message)}
@@ -223,20 +227,24 @@ window.saveLoanProduct=async id=>{const p={name:qid('pn').value.trim(),min_amoun
 async function renderWithdrawals(){const el=qid('withdrawalsBody');if(!el)return;C().from('staff_wallet_withdrawals').select('*,staff:staff_id(employee_id,name,mobile)').order('requested_at',{ascending:false}).then(r=>{if(r.error){el.innerHTML='<p>'+esc(r.error.message)+'</p>';return}const rows=(r.data||[]).map(x=>'<tr><td>'+esc(x.staff?.employee_id||'-')+'</td><td>'+esc(x.staff?.name||'-')+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.status)+'</td><td>'+esc(new Date(x.requested_at).toLocaleString())+'</td><td>'+ (x.status==='pending'?'<button class="btn green" onclick="reviewWithdrawal('+x.id+',\'approved\')">Accept</button> <button class="btn red" onclick="reviewWithdrawal('+x.id+',\'rejected\')">Reject</button>':'-')+'</td></tr>').join('')||'<tr><td colspan="6">No withdrawal requests.</td></tr>';el.innerHTML='<div class="wrap"><table><tr><th>Employee ID</th><th>Staff</th><th>Amount</th><th>Status</th><th>Requested</th><th>Action</th></tr>'+rows+'</table></div>'})}
 window.reviewWithdrawal=async(id,status)=>{try{const remarks=status==='approved'?'Approved by Admin':'Rejected by Admin';const r=await C().rpc('hfy_review_staff_withdrawal',{p_withdrawal_id:id,p_status:status,p_remarks:remarks});if(r.error)throw r.error;renderWithdrawals();alert(status==='approved'?'Withdrawal approved. Amount deducted from wallet.':'Withdrawal rejected. Amount remains in wallet.')}catch(e){alert(e.message||e)}};
 async function syncGlobals(){
- try{
-  const q=await Promise.all([
-   C().from('customers').select('*'),
-   C().from('loan_accounts').select('*'),
-   C().from('loan_applications').select('*').order('created_at',{ascending:false}),
-   C().from('loan_repayments').select('*'),
-   C().from('financial_transactions').select('*')
-  ]);
-  if(q.every(x=>!x.error)){window.__HFY_CUSTOMERS=q[0].data||[];window.__HFY_LOANS=q[1].data||[];window.__HFY_APPLICATIONS=q[2].data||[];window.__HFY_PAYMENTS=q[3].data||[];window.__HFY_TRANSACTIONS=q[4].data||[];
-   const e=await C().from('loan_emi_schedule').select('*');
-   window.__HFY_EMIS=e.data||[];
-  }
- }catch(e){console.warn(e)}
+ const qs=[
+  C().from('customers').select('*'),
+  C().from('loan_accounts').select('*'),
+  C().from('loan_applications').select('*').order('created_at',{ascending:false}),
+  C().from('loan_repayments').select('*'),
+  C().from('financial_transactions').select('*'),
+  C().from('loan_emi_schedule').select('*')
+ ];
+ const q=await Promise.all(qs.map(p=>p.catch(error=>({data:[],error}))));
+ window.__HFY_CUSTOMERS=q[0].error?(console.warn('Customers:',q[0].error),[]):(q[0].data||[]);
+ window.__HFY_LOANS=q[1].error?(console.warn('Loans:',q[1].error),[]):(q[1].data||[]);
+ window.__HFY_APPLICATIONS=q[2].error?(console.warn('Applications:',q[2].error),[]):(q[2].data||[]);
+ window.__HFY_PAYMENTS=q[3].error?(console.warn('Repayments:',q[3].error),[]):(q[3].data||[]);
+ window.__HFY_TRANSACTIONS=q[4].error?(console.warn('Transactions:',q[4].error),[]):(q[4].data||[]);
+ window.__HFY_EMIS=q[5].error?(console.warn('EMI:',q[5].error),[]):(q[5].data||[]);
 }
+window.renderPanel=renderPanel;
+window.renderWithdrawals=renderWithdrawals;
 const origLoad=window.loadData;
 if(origLoad)window.loadData=async function(){const r=await origLoad.apply(this,arguments);await syncGlobals();await refresh();renderWithdrawals();return r};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',async()=>{await syncGlobals();setup();renderWithdrawals()});else (async()=>{await syncGlobals();setup()})();
