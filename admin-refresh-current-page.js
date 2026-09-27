@@ -1,7 +1,7 @@
 /* HELP FOR YOU — Keep current Admin section after browser refresh only */
 (()=>{
 'use strict';
-const KEY='hfy_admin_current_section';
+const KEY='hfy_admin_current_section_v2';
 let restoring=false;
 const getSaved=()=>{try{return sessionStorage.getItem(KEY)}catch(e){return null}};
 const setSaved=id=>{try{sessionStorage.setItem(KEY,String(id))}catch(e){}};
