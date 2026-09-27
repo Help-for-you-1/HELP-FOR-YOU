@@ -18,4 +18,51 @@ function staffPanel(){const box=document.getElementById('staff');if(!box)return;
 window.deleteStaff=async id=>{if(!confirm('Delete this staff account? This will also remove its credentials and permissions.'))return;try{const r=await S().rpc('hfy_delete_staff',{p_staff_id:id});if(r.error)throw r.error;await window.loadData();alert('Staff deleted successfully.')}catch(e){console.error(e);alert('Staff delete error: '+(e?.message||e))}};
 const oldLoad=window.loadData;window.loadData=async()=>{await oldLoad();try{const q=await S().from('staff').select('*').order('created_at',{ascending:false});if(!q.error){window.__HFY_STAFF=q.data||[];staffPanel()}}catch(e){console.error(e)}};
 window.addEventListener('load',()=>setTimeout(()=>{if(window.loadData)window.loadData()},300));
+
+// Staff/Admin functional actions
+window.addStaff=async()=>{
+ const nums=(window.__HFY_STAFF||[]).map(x=>String(x.employee_id||'').match(/(\d+)$/)?.[1]).filter(Boolean).map(Number);
+ const eid='EMP-'+String((nums.length?Math.max(...nums):0)+1).padStart(4,'0');
+ window.openBox('Add Staff/Admin',`<div class="form">
+  <label>Employee ID<input id="as_eid" value="${E(eid)}" readonly></label>
+  <label>Name<input id="as_name" placeholder="Full name"></label><label>Mobile<input id="as_mobile" placeholder="Mobile number"></label>
+  <label>Email<input id="as_email" type="email" placeholder="Email"></label>
+  <label>Role<select id="as_role"><option value="custom_staff">custom_staff</option><option value="verifier">verifier</option><option value="loan_officer">loan_officer</option><option value="collection_officer">collection_officer</option><option value="manager">manager</option></select></label>
+  <label>Status<select id="as_status"><option>active</option><option>inactive</option><option>blocked</option></select></label>
+  <label>Login ID<input id="as_login"></label><label>Login Password<input id="as_password" type="password"></label>
+  <label>Commission %<input id="as_commission" type="number" min="0" step="0.01" value="0"></label>
+  <div class="full"><button class="btn green" onclick="saveNewStaff()">Create Staff</button></div></div>`);
+};
+window.saveNewStaff=async()=>{
+ try{const g=id=>document.getElementById(id)?.value??'',name=g('as_name').trim(),login=g('as_login').trim(),password=g('as_password');
+  if(!name)return alert('Name is required.');if(!login||!password)return alert('Login ID and password are required.');
+  const c=S(),r=await c.from('staff').insert({employee_id:g('as_eid'),name,mobile:g('as_mobile').trim()||null,email:g('as_email').trim()||null,role:g('as_role'),status:g('as_status'),payment_enabled:true,loan_apply_enabled:true,login_enabled:true,commission_rate:Math.max(0,Number(g('as_commission')||0))}).select().single();
+  if(r.error)throw r.error;const s=r.data;
+  let q=await c.from('staff_credentials').insert({staff_id:s.id,login_id:login,login_password:password});
+  if(q.error){await c.from('staff').delete().eq('id',s.id);throw q.error}
+  q=await c.from('staff_permissions').insert({staff_id:s.id});if(q.error)console.warn('Staff permissions setup:',q.error);
+  q=await c.from('staff_wallets').insert({staff_id:s.id,balance:0});if(q.error)console.warn('Staff wallet setup:',q.error);
+  window.closeM();await window.loadData();alert('Staff created successfully.');
+ }catch(e){console.error(e);alert('Staff create error: '+(e?.message||e))}
+};
+window.staffView=async i=>{
+ try{const x=(window.__HFY_STAFF||[])[i];if(!x)return alert('Staff not found.');
+  const q=await S().from('staff_credentials').select('*').eq('staff_id',x.id).maybeSingle();if(q.error)throw q.error;const c=q.data||{};
+  window.openBox('Staff Credentials',`<div class="form"><label>Employee ID<input value="${E(x.employee_id)}" readonly></label><label>Name<input value="${E(x.name)}" readonly></label><label>Login ID<input id="sv_login" value="${E(c.login_id||'')}"></label><label>Login Password<input id="sv_password" value="${E(c.login_password||'')}"></label><div class="full"><button class="btn green" onclick="saveStaffCredentials(${x.id})">Save Credentials</button></div></div>`);
+ }catch(e){console.error(e);alert('Credentials error: '+(e?.message||e))}
+};
+window.saveStaffCredentials=async id=>{
+ try{const login=document.getElementById('sv_login')?.value.trim(),password=document.getElementById('sv_password')?.value;if(!login||!password)return alert('Login ID and password are required.');
+  const r=await S().from('staff_credentials').upsert({staff_id:id,login_id:login,login_password:password,updated_at:new Date().toISOString()},{onConflict:'staff_id'});if(r.error)throw r.error;window.closeM();alert('Credentials saved successfully.');
+ }catch(e){console.error(e);alert('Credentials save error: '+(e?.message||e))}
+};
+window.staffWallet=async i=>{
+ try{const x=(window.__HFY_STAFF||[])[i];if(!x)return alert('Staff not found.');
+  let q=await S().from('staff_wallets').select('*').eq('staff_id',x.id).maybeSingle();if(q.error)throw q.error;
+  if(!q.data){q=await S().from('staff_wallets').insert({staff_id:x.id,balance:0}).select().single();if(q.error)throw q.error}
+  const w=q.data,tx=await S().from('staff_wallet_transactions').select('*').eq('staff_id',x.id).order('created_at',{ascending:false});if(tx.error)throw tx.error;
+  const rows=(tx.data||[]).map(t=>'<tr><td>'+E(t.transaction_type||'-')+'</td><td>'+M(t.recovered_amount||0)+'</td><td>'+M(t.commission_amount||0)+'</td><td>'+E(t.remarks||'')+'</td><td>'+E((t.created_at||'').slice(0,10))+'</td></tr>').join('')||'<tr><td colspan="5">No wallet transactions.</td></tr>';
+  window.openBox('Staff Wallet — '+E(x.name),'<p>Employee ID: <b>'+E(x.employee_id)+'</b></p><p>Current Balance: <b>'+M(w.balance)+'</b></p><div class="wrap"><table><tr><th>Type</th><th>Recovered</th><th>Commission</th><th>Remarks</th><th>Date</th></tr>'+rows+'</table></div>');
+ }catch(e){console.error(e);alert('Wallet error: '+(e?.message||e))}
+};
 })();
