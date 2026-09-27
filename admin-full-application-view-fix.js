@@ -1,39 +1,44 @@
-/* HELP FOR YOU — Final Application View/Edit click fix */
+/* HELP FOR YOU — View button only fix */
 (()=>{
 'use strict';
-let busy=false;
-
-function openEditor(i){
-  if(busy)return;
+function openView(i){
+  const n=Number(i);
   const rows=window.__HFY_APPLICATIONS||[];
-  const idx=Number(i);
-  if(!rows[idx]){alert('Application not found.');return;}
+  if(!rows[n]){alert('Application not found.');return false;}
   if(typeof window.editApproval==='function'){
-    window.editApproval(idx);
-    return;
+    window.editApproval(n);
+    return false;
   }
   alert('Full Application editor is not loaded. Please refresh the Admin Panel.');
+  return false;
 }
-
-function handleClick(ev){
-  const target=ev.target&&ev.target.closest ? ev.target.closest('#appsRows button') : null;
-  if(!target)return;
-  const raw=target.getAttribute('onclick')||'';
-  const m=raw.match(/viewApp\((\d+)\)/);
-  if(!m)return;
-  ev.preventDefault();
-  ev.stopPropagation();
-  if(ev.stopImmediatePropagation)ev.stopImmediatePropagation();
-  openEditor(m[1]);
-}
-
 function bind(){
-  if(window.__HFY_FULL_APP_CAPTURE)return;
-  window.__HFY_FULL_APP_CAPTURE=true;
-  document.addEventListener('click',handleClick,true);
-  window.viewApp=function(i){openEditor(i);};
+  const body=document.getElementById('appsRows');
+  if(!body)return;
+  body.querySelectorAll('button').forEach(btn=>{
+    const raw=btn.getAttribute('onclick')||'';
+    const m=raw.match(/viewApp\((\d+)\)/);
+    if(!m)return;
+    btn.onclick=null;
+    btn.removeAttribute('onclick');
+    btn.addEventListener('click',function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      openView(m[1]);
+    },true);
+  });
 }
-
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);
-else bind();
+function boot(){
+  bind();
+  const body=document.getElementById('appsRows');
+  if(body&&!body.__hfyViewObserver){
+    const ob=new MutationObserver(()=>bind());
+    ob.observe(body,{childList:true,subtree:true});
+    body.__hfyViewObserver=true;
+  }
+  window.viewApp=openView;
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);
+else boot();
+[100,300,600,1000,1500,2500,4000].forEach(t=>setTimeout(bind,t));
 })();
