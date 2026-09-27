@@ -32,14 +32,23 @@ function renderCorePanels(){
  const ov=document.getElementById('ovRows');
  if(ov)ov.innerHTML=(emis.filter(x=>x.status!=='paid'&&Number(x.remaining_amount||0)>0).map(x=>'<tr><td>'+esc(x.loan_id)+'</td><td>'+esc(c.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+money(x.emi_amount)+'</td><td>'+esc(x.due_date||'-')+'</td><td>'+money(x.penalty)+'</td><td>'+money(x.remaining_amount)+'</td><td>—</td></tr>').join('')||'<tr><td colspan="7">No overdue EMI records found.</td></tr>');
 }
+async function loadStaffDirect(){
+ try{const rows=await get('staff','created_at');if(rows.length)window.__HFY_STAFF=rows;return rows}catch(e){console.warn('HFY direct staff load',e);return window.__HFY_STAFF||[]}
+}
+function renderStaffDirect(){
+ const st=document.getElementById('staff');if(!st)return;
+ const staff=window.__HFY_STAFF||[];
+ st.innerHTML='<h2>Staff/Admin</h2><div class="actions"><button class="btn blue" onclick="addStaff()">+ Add Staff</button></div><div class="wrap"><table><thead><tr><th>Employee ID</th><th>Name</th><th>Mobile</th><th>Role</th><th>Status</th><th>Payment</th><th>Loan Apply</th><th>ID</th><th>Manage</th><th>Wallet</th></tr></thead><tbody>'+(staff.map((x,i)=>'<tr><td>'+esc(x.employee_id||'-')+'</td><td>'+esc(x.name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc(x.role||'-')+'</td><td>'+esc(x.status||'-')+'</td><td>'+(x.payment_enabled!==false?'🟢':'🔴')+'</td><td>'+(x.loan_apply_enabled!==false?'🟢':'🔴')+'</td><td>'+(x.login_enabled!==false?'🟢':'🔴')+'</td><td><button class="btn blue" onclick="manageStaff('+i+')">Manage</button></td><td><button class="btn green" onclick="staffWallet('+i+')">Wallet</button></td></tr>').join('')||'<tr><td colspan="10">No staff records found.</td></tr>')+'</tbody></table></div>';
+}
 async function refresh(){
  if(busy)return;
  busy=true;
  try{
   if(window.hfyAdminReady){const ok=await window.hfyAdminReady;if(!ok)return}
   if(typeof window.loadData==='function')await window.loadData();
-  if(!(window.__HFY_STAFF||[]).length){const freshStaff=await get('staff','created_at');window.__HFY_STAFF=freshStaff;}
+  await loadStaffDirect();
   renderCorePanels();
+  renderStaffDirect();
   if(typeof window.renderPanel==='function')MODULES.forEach(id=>{try{window.renderPanel(id)}catch(e){console.warn('HFY module render',id,e)}});
  }catch(e){console.error('HFY final module refresh',e)}
  finally{busy=false}
@@ -55,6 +64,7 @@ async function open(id,el){
  await refresh();
  try{
   if(CORE.includes(id)&&typeof window.renderCore==='function')window.renderCore();
+  if(id==='staff')renderStaffDirect();
   if(id==='apps'&&typeof window.loadApplications==='function')await window.loadApplications();
   if(MODULES.includes(id)&&typeof window.renderPanel==='function')window.renderPanel(id);
   if(id==='withdrawals'&&typeof window.renderWithdrawals==='function')window.renderWithdrawals();
