@@ -6,6 +6,10 @@
 let client,loading=false;
 const db=()=>client||(client=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY));
 const q=(t,o)=>{let x=db().from(t).select('*');return o?x.order(o,{ascending:false}):x};
+window.closeM=function(){
+  const m=document.getElementById('modal');
+  if(m)m.classList.remove('on');
+};
 async function loadCore(){
   if(window.hfyAdminReady){const ok=await window.hfyAdminReady;if(!ok)return false;}
   const [a,c,l,e,p,t,s,w]=await Promise.all([
