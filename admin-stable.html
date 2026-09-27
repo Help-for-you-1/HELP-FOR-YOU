@@ -163,7 +163,7 @@ window.hfyRenderApprovalOnly=function(){
   var out=rows.filter(function(x){return String(x.status||'').trim().toLowerCase()!=='approved';}).map(function(x){
     var i=rows.indexOf(x),s=String(x.status||'pending').trim();
     var cls=s.toLowerCase()==='rejected'?'over':'pending';
-    return '<tr><td>'+esc(x.full_name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc((x.applied_at||x.created_at||'').slice(0,10))+'</td><td>'+money(x.requested_amount)+'</td><td>'+money(x.approved_amount)+'</td><td class="'+cls+'">'+esc(s)+'</td><td><button class="btn blue" onclick="editApproval('+i+')">Edit</button></td></tr>';
+    return '<tr><td>'+esc(x.full_name||'-')+'</td><td>'+esc(x.mobile||'-')+'</td><td>'+esc((x.applied_at||x.created_at||'').slice(0,10))+'</td><td>'+money(x.requested_amount)+'</td><td>'+money(x.approved_amount)+'</td><td class="'+cls+'">'+esc(s)+'</td><td><select class="approval-status-select" data-index="'+i+'" onchange="hfyChangeApprovalStatus(this)"><option value="approved"'+(s.toLowerCase()==='approved'?' selected':'')+'>Approved</option><option value="rejected"'+(s.toLowerCase()==='rejected'?' selected':'')+'>Rejected</option><option value="under_review"'+(s.toLowerCase()==='under_review'?' selected':'')+'>Under Review</option><option value="pending"'+(s.toLowerCase()==='pending'?' selected':'')+'>Pending</option></select></td></tr>';
   }).join('');
   body.innerHTML=out||'<tr><td colspan="7">No applications available for approval.</td></tr>';
 };
@@ -210,6 +210,27 @@ window.saveApproval=async function(i){
     if(typeof window.loadData==='function')await window.loadData();
     alert('Update saved.');
   }catch(e){console.error(e);alert('Approval save error: '+(e&&e.message||e));}
+};
+})();
+</script>
+<script>
+(function(){
+'use strict';
+window.hfyChangeApprovalStatus=async function(el){
+  try{
+    var i=Number(el.getAttribute('data-index')),rows=window.__HFY_APPLICATIONS||[],x=rows[i];
+    if(!x)return alert('Application not found.');
+    var status=String(el.value||'pending');
+    var sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+    var r=await sb.from('loan_applications').update({status:status,updated_at:new Date().toISOString()}).eq('id',x.id).select('id');
+    if(r.error)throw r.error;
+    if(!r.data||!r.data.length)throw new Error('Status update was not permitted.');
+    x.status=status;
+    if(typeof window.loadData==='function')await window.loadData();
+  }catch(e){
+    console.error(e);
+    alert('Status update failed: '+(e&&e.message||e));
+  }
 };
 })();
 </script></body></html>
