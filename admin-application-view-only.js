@@ -12,6 +12,9 @@ function view(i){
  if(typeof window.editApproval!=='function'){alert('Application editor is unavailable.');return;}
  window.editApproval(Number(i));
  const mb=document.getElementById('mb');
+ const modal=document.getElementById('modal');
+ const closeBtn=modal&&modal.querySelector('.box > button');
+ if(closeBtn)closeBtn.onclick=function(){if(modal)modal.classList.remove('on');};
  if(!mb)return;
  const customers=window.__HFY_CUSTOMERS||[];
  const c=customers.find(v=>String(v.id)===String(x.customer_id))||{};
