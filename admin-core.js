@@ -71,7 +71,7 @@ window.loadApplications=async function(){
  }catch(e){console.error('Applications load error:',e);alert('Applications load error: '+(e?.message||e));}
 };
 window.viewApp=i=>{if(!D.a[i])return alert('Application not found.');window.editApproval(i)};
-window.editApproval=i=>{const x=D.a[i];if(!x)return alert('Application not found.');openBox('Full Application — View / Edit',`<div class="form">
+window.editApproval=i=>{const rows=window.__HFY_APPLICATIONS||D.a||[];const x=rows[i];if(!x)return alert('Application not found.');openBox('Full Application — View / Edit',`<div class="form">
 <label>Application ID<input id="av_id" value="${esc(x.id??'')}" readonly></label><label>Customer ID<input id="av_cid" value="${esc(x.customer_id??'')}" readonly></label>
 <label>Full Name<input id="an" value="${esc(x.full_name||x.name||'')}"></label><label>Parent / Father / Mother Name<input id="apn" value="${esc(x.parent_name||'')}"></label>
 <label>Mobile<input id="am" value="${esc(x.mobile||'')}"></label><label>Email<input id="ae" value="${esc(x.email||'')}"></label>
