@@ -34,7 +34,7 @@ async function refreshList(){
   const es=emis.filter(e=>String(e.loan_account_id||e.loan_id)===String(l.id||l.loan_id));
   let total=0,paid=0,overdue=0;
   es.forEach(e=>{const p=penalty(e),td=Number(e.emi_amount||0)+p,pa=Number(e.paid_amount||0);total+=td;paid+=pa;if(stat(e)==='overdue')overdue+=Math.max(0,td-pa);});
-  const status=es.length&&es.every(e=>stat(e)==='paid')?'paid':overdue>0?'overdue':'pending';
+  const status=String(l.loan_status||l.status||'').trim().toLowerCase()==='closed'||String(l.loan_status||l.status||'').trim().toLowerCase()==='completed'?'closed':'active';
   return '<tr><td>'+esc(c?.full_name||'-')+'</td><td>'+esc(l.loan_id||'-')+'</td><td>'+esc(c?.mobile||'-')+'</td><td>'+money(l.loan_amount)+'</td><td>'+money(total)+'</td><td>'+esc(l.start_date||'-')+'</td><td>'+money(overdue)+'</td><td class="'+(status==='paid'?'paid':status==='overdue'?'over':'pending')+'"><b>'+status+'</b></td><td><button class="btn blue" onclick="viewLoanEmi('+i+')">View</button></td></tr>';
  }).join('')||'<tr><td colspan="9">No active EMI / Repayment records.</td></tr>';
 }
