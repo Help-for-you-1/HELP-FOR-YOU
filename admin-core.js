@@ -14,7 +14,30 @@ window.openBox=(t,h)=>{$('mt').textContent=t;$('mb').innerHTML=h;$('modal').clas
 window.closeM=()=>{$('modal').classList.remove('on')};
 const customerName=id=>{const c=D.c.find(x=>String(x.id)===String(id));return c?.full_name||'-'};
 const isPending=x=>['draft','submitted','pending','under_review'].includes(String(x.status||'').toLowerCase());
-async function loadData(){try{const q=[db().from('loan_applications').select('*').order('created_at',{ascending:false}),db().from('customers').select('*').order('created_at',{ascending:false}),db().from('loan_accounts').select('*').order('created_at',{ascending:false}),db().from('loan_emi_schedule').select('*').order('due_date'),db().from('loan_repayments').select('*').order('payment_date',{ascending:false}),db().from('financial_transactions').select('*').order('transaction_date',{ascending:false}),db().from('staff').select('*').order('created_at',{ascending:false}),db().from('staff_wallets').select('*')];const r=await Promise.all(q);for(const x of r)if(x.error)throw x.error;D.a=r[0].data||[];D.c=r[1].data||[];D.l=r[2].data||[];D.e=r[3].data||[];D.p=r[4].data||[];D.t=r[5].data||[];D.s=r[6].data||[];D.w=r[7].data||[];render()}catch(e){fail(e)}}
+async function loadData(){
+ try{
+  const qs=[
+   db().from('loan_applications').select('*').order('created_at',{ascending:false}),
+   db().from('customers').select('*').order('created_at',{ascending:false}),
+   db().from('loan_accounts').select('*').order('created_at',{ascending:false}),
+   db().from('loan_emi_schedule').select('*').order('due_date'),
+   db().from('loan_repayments').select('*').order('payment_date',{ascending:false}),
+   db().from('financial_transactions').select('*').order('transaction_date',{ascending:false}),
+   db().from('staff').select('*').order('created_at',{ascending:false}),
+   db().from('staff_wallets').select('*')
+  ];
+  const r=await Promise.all(qs.map(p=>p.catch(error=>({data:[],error}))));
+  D.a=r[0].error?(console.error('Applications load:',r[0].error),[]):(r[0].data||[]);
+  D.c=r[1].error?(console.error('Customers load:',r[1].error),[]):(r[1].data||[]);
+  D.l=r[2].error?(console.error('Loans load:',r[2].error),[]):(r[2].data||[]);
+  D.e=r[3].error?(console.error('EMI load:',r[3].error),[]):(r[3].data||[]);
+  D.p=r[4].error?(console.error('Repayments load:',r[4].error),[]):(r[4].data||[]);
+  D.t=r[5].error?(console.error('Transactions load:',r[5].error),[]):(r[5].data||[]);
+  D.s=r[6].error?(console.error('Staff load:',r[6].error),[]):(r[6].data||[]);
+  D.w=r[7].error?(console.error('Wallet load:',r[7].error),[]):(r[7].data||[]);
+  render();
+ }catch(e){fail(e)}
+}
 window.loadData=loadData;
 function render(){
 $('nA').textContent=D.a.length;$('nP').textContent=D.a.filter(isPending).length;$('nC').textContent=D.c.length;$('nL').textContent=D.l.length;const due=D.l.reduce((n,x)=>n+Number(x.remaining_amount||0),0);$('nD').textContent=money(due);const reportDue=$('reportDue');if(reportDue)reportDue.textContent=money(due);
