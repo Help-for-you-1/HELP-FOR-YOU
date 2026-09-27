@@ -59,7 +59,7 @@ window.hfyPay=async function(id){
   const p=penalty(e),remaining=Math.max(0,Number(e.emi_amount||0)+p-Number(e.paid_amount||0));if(remaining<=0)return alert('This EMI is already paid.');
   let customer='-';if(e.customer_id){const c=await s.from('customers').select('full_name').eq('id',e.customer_id).maybeSingle();if(c.error)throw c.error;customer=c.data?.full_name||'-';}
   window.__hfySinglePay={id:e.id,remaining};
-  openBox('EMI Payment','<div class="form"><div class="full"><b>Customer:</b> '+esc(customer)+' &nbsp; <b>EMI No.:</b> '+esc(e.emi_number)+'</div><div class="full"><b>Current EMI Due:</b> '+money(remaining)+'</div><label class="full">Payment Amount<input id="hfySinglePayAmount" type="number" min="0.01" step="0.01" value="'+remaining.toFixed(2)+'"></label><label>Payment Method<select id="hfySinglePayMethod"><option value="Cash">Cash</option><option value="UPI">UPI</option></select></label><div class="full"><button class="btn green" onclick="hfySingleConfirmPay()">Confirm Payment</button></div></div>');
+  openBox('EMI Payment Confirmation','<div class="form"><div class="full"><b>Customer:</b> '+esc(customer)+'</div><label>EMI No.<input id="hfySinglePayEmiNo" type="text" value="'+esc(e.emi_number)+'" readonly></label><label>EMI Amount<input id="hfySinglePayAmount" type="number" min="0.01" step="0.01" value="'+remaining.toFixed(2)+'"></label><label>Payment Method<select id="hfySinglePayMethod"><option value="Cash">Cash</option><option value="UPI">UPI</option></select></label><div class="full"><button class="btn green" onclick="hfySingleConfirmPay()">Confirm Payment</button></div></div>');
  }catch(e){console.error(e);alert('Payment screen error: '+(e?.message||e));}
 };
 window.hfySingleConfirmPay=async function(){
