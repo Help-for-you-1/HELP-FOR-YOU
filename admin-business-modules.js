@@ -168,10 +168,25 @@ window.markNotificationSent=async i=>{const x=M.notifications[i];const r=await C
 async function renderSettings(){
  const el=qid('settingsBody');if(!el)return;
  const s=await C().from('loan_settings').select('*').limit(1).maybeSingle();
+ if(s.error){el.innerHTML='<p class="error">'+esc(s.error.message)+'</p>';return}
  const x=s.data||{};
- el.innerHTML='<h3>Global Loan Settings</h3><div class="form"><label>Min Loan Amount<input id="smin" type="number" value="'+Number(x.min_loan_amount||0)+'"></label><label>Max Loan Amount<input id="smax" type="number" value="'+Number(x.max_loan_amount||0)+'"></label><label>Monthly Interest %<input id="sir" type="number" step="0.01" value="'+Number(x.monthly_interest_rate||0)+'"></label><label>Penalty % / day<input id="spp" type="number" step="0.01" value="'+Number(x.penalty_percent||0)+'"></label><label>Daily EMI<select id="sde"><option value="true">Enabled</option><option value="false">Disabled</option></select></label><div class="full"><button class="btn green" onclick="saveLoanSettings(''+esc(String(x.id||''))+'')">Save Global Settings</button></div></div><hr><h3>Loan Products / Schemes</h3><div class="actions"><button class="btn blue" onclick="addLoanProduct()">+ Add Product</button></div><div class="wrap"><table><thead><tr><th>Name</th><th>Min</th><th>Max</th><th>Tenure</th><th>Interest</th><th>Fee</th><th>Penalty</th><th>Frequency</th><th>Active</th><th>Action</th></tr></thead><tbody>'+M.products.map((p,i)=>'<tr><td>'+esc(p.name)+'</td><td>'+money(p.min_amount)+'</td><td>'+money(p.max_amount)+'</td><td>'+esc(p.tenure_months)+'</td><td>'+esc(p.interest_rate)+'%</td><td>'+money(p.processing_fee)+'</td><td>'+esc(p.penalty_percent)+'%</td><td>'+esc(p.emi_frequency)+'</td><td>'+esc(p.active)+'</td><td><button class="btn blue" onclick="editLoanProduct('+i+')">Edit</button></td></tr>').join('')||'<tr><td colspan="10">No products.</td></tr>'+'</tbody></table></div>';
+ el.innerHTML=`<h3>Global Loan Settings</h3>
+ <div class="form">
+  <label>Min Loan Amount<input id="smin" type="number" value="${Number(x.min_loan_amount||0)}"></label>
+  <label>Max Loan Amount<input id="smax" type="number" value="${Number(x.max_loan_amount||0)}"></label>
+  <label>Monthly Interest %<input id="sir" type="number" step="0.01" value="${Number(x.monthly_interest_rate||0)}"></label>
+  <label>Penalty % / day<input id="spp" type="number" step="0.01" value="${Number(x.penalty_percent||0)}"></label>
+  <label>Daily EMI<select id="sde"><option value="true">Enabled</option><option value="false">Disabled</option></select></label>
+  <div class="full"><button class="btn green" onclick="saveLoanSettings('${esc(String(x.id||''))}')">Save Global Settings</button></div>
+ </div>
+ <hr><h3>Loan Products / Schemes</h3>
+ <div class="actions"><button class="btn blue" onclick="addLoanProduct()">+ Add Product</button></div>
+ <div class="wrap"><table><thead><tr><th>Name</th><th>Min</th><th>Max</th><th>Tenure</th><th>Interest</th><th>Fee</th><th>Penalty</th><th>Frequency</th><th>Active</th><th>Action</th></tr></thead><tbody>
+ ${M.products.map((p,i)=>'<tr><td>'+esc(p.name)+'</td><td>'+money(p.min_amount)+'</td><td>'+money(p.max_amount)+'</td><td>'+esc(p.tenure_months)+'</td><td>'+esc(p.interest_rate)+'%</td><td>'+money(p.processing_fee)+'</td><td>'+esc(p.penalty_percent)+'%</td><td>'+esc(p.emi_frequency)+'</td><td>'+esc(p.active)+'</td><td><button class="btn blue" onclick="editLoanProduct('+i+')">Edit</button></td></tr>').join('')||'<tr><td colspan="10">No products.</td></tr>'}
+ </tbody></table></div>`;
  qid('sde').value=String(x.daily_emi!==false);
 }
+
 window.saveLoanSettings=async id=>{const p={min_loan_amount:+qid('smin').value,max_loan_amount:+qid('smax').value,monthly_interest_rate:+qid('sir').value,penalty_percent:+qid('spp').value,daily_emi:qid('sde').value==='true',updated_at:new Date().toISOString()};const r=await C().from('loan_settings').update(p).eq('id',id);if(r.error)return alert(r.error.message);await audit('Updated global loan settings','Settings',id);await refresh();alert('Settings saved')};
 function productForm(x){x=x||{};return `<div class="form"><label>Name<input id="pn" value="${esc(x.name||'')}"></label><label>Min Amount<input id="pmin" type="number" value="${Number(x.min_amount||0)}"></label><label>Max Amount<input id="pmax" type="number" value="${Number(x.max_amount||0)}"></label><label>Tenure Months<input id="pt" type="number" min="1" value="${Number(x.tenure_months||1)}"></label><label>Interest %<input id="pi" type="number" step="0.01" value="${Number(x.interest_rate||0)}"></label><label>Processing Fee<input id="pf" type="number" step="0.01" value="${Number(x.processing_fee||0)}"></label><label>Penalty %<input id="pp" type="number" step="0.01" value="${Number(x.penalty_percent||0)}"></label><label>EMI Frequency<select id="pe"><option>daily</option><option>weekly</option><option>monthly</option></select></label><label>Active<select id="pa"><option value="true">Yes</option><option value="false">No</option></select></label><div class="full"><button class="btn green" onclick="saveLoanProduct('${esc(x.id||'')}')">Save</button></div></div>`}
 window.addLoanProduct=()=>modal('Add Loan Product',productForm());
