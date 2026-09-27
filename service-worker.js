@@ -5,8 +5,8 @@ const APP_SHELL = [
   '/HELP-FOR-YOU/login.html',
   '/HELP-FOR-YOU/manifest.json',
   '/HELP-FOR-YOU/hfy-logo.svg',
-  '/HELP-FOR-YOU/pwa-icon-192.svg',
-  '/HELP-FOR-YOU/pwa-icon-512.svg'
+  '/HELP-FOR-YOU/pwa-icon-192.png',
+  '/HELP-FOR-YOU/pwa-icon-512.png'
 ];
 
 self.addEventListener('install', event => {
