@@ -14,8 +14,7 @@ async function dashboard(){
    s.from('loan_emi_schedule').select('*').order('due_date'),
    s.from('loan_repayments').select('*').order('payment_date',{ascending:false})
   ]);
-  if(a.error)throw a.error;if(c.error)throw c.error;if(l.error)throw l.error;if(e.error)throw e.error;if(p.error)throw p.error;
-  const apps=a.data||[],customers=c.data||[],loans=l.data||[],emis=e.data||[],payments=p.data||[];
+  const apps=a.error?[]:(a.data||[]),customers=c.error?[]:(c.data||[]),loans=l.error?[]:(l.data||[]),emis=e.error?[]:(e.data||[]),payments=p.error?[]:(p.data||[]);
   const pending=new Set(['draft','submitted','pending','under_review']);
   const activeLoans=loans.filter(x=>!['completed','closed'].includes(String(x.loan_status||'').toLowerCase()));
   const due=activeLoans.reduce((n,x)=>n+Math.max(0,Number(x.remaining_amount||0))+Math.max(0,Number(x.penalty_amount||0)),0);
@@ -30,6 +29,6 @@ async function dashboard(){
  }catch(err){console.error('Dashboard render failed:',err)}
 }
 window.renderFinalDashboard=dashboard;
-setTimeout(dashboard,1800);setTimeout(dashboard,3500);
+setTimeout(dashboard,800);setTimeout(dashboard,2000);setTimeout(dashboard,4000);
 const oldShow=window.show;window.show=(id,b)=>{if(oldShow)oldShow(id,b);if(id==='dash')setTimeout(dashboard,150)};
 })();
