@@ -196,6 +196,7 @@ async function renderSettings(){
  const s=await C().from('loan_settings').select('*').limit(1).maybeSingle();
  if(s.error){el.innerHTML='<p class="error">'+esc(s.error.message)+'</p>';return}
  const x=s.data||{};
+ if(!qid('settingsBody'))return;
  el.innerHTML=`<h3>Global Loan Settings</h3>
  <div class="form">
   <label>Min Loan Amount<input id="smin" type="number" value="${Number(x.min_loan_amount||0)}"></label>
