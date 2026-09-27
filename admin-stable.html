@@ -174,4 +174,42 @@ window.render=function(){
 };
 })();
 </script>
-</body></html>
+<script>
+(function(){
+'use strict';
+window.saveApproval=async function(i){
+  try{
+    var rows=window.__HFY_APPLICATIONS||[],x=rows[Number(i)],g=function(id){return document.getElementById(id);};
+    if(!x)return alert('Application not found.');
+    var sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+    var p={
+      full_name:g('an').value.trim(),parent_name:g('apn').value||null,mobile:g('am').value.trim(),email:g('ae').value||null,
+      date_of_birth:g('ad').value||null,gender:g('ag').value||null,address:g('ax').value||null,house:g('ah').value||null,
+      street:g('astreet').value||null,village:g('av').value||null,post_office:g('apo').value||null,city:g('acity').value||null,
+      district:g('adi').value||null,state:g('as').value||null,pincode:g('ap').value||null,occupation:g('ao').value||null,
+      monthly_income:Number(g('ai').value||0)||null,pan_number:g('apan').value||null,aadhaar_number:g('aad').value||null,
+      bank_account:g('aba').value||null,ifsc_code:g('aifsc').value||null,loan_type:g('alt').value||null,loan_purpose:g('alp').value||null,
+      requested_amount:Number(g('arq').value||0),approved_amount:Number(g('aa').value||0),loan_amount:Number(g('ala').value||0)||null,
+      tenure_months:Number(g('at').value||1),interest_rate:Number(g('air').value||0),emi_amount:Number(g('aemi').value||0)||null,
+      daily_emi:Number(g('adaily').value||0)||null,total_interest:Number(g('ati').value||0)||null,total_repayment:Number(g('atr').value||0)||null,
+      sanction_date:g('asd').value||null,status:g('ast').value,kyc_status:g('ak').value,bank_verification:g('ab').value||'Pending',
+      fraud_check:g('af').value||'Pending',admin_remarks:g('ar').value||null,updated_at:new Date().toISOString()
+    };
+    if(!p.full_name||!p.mobile)return alert('Name and Mobile are required.');
+    if(p.requested_amount<1000||p.requested_amount>20000)return alert('Request loan amount must be ₹1,000 to ₹20,000.');
+    if(p.approved_amount<1000||p.approved_amount>20000)return alert('Sanction loan amount must be ₹1,000 to ₹20,000.');
+    var r=await sb.from('loan_applications').update(p).eq('id',x.id).select('id');
+    if(r.error)throw r.error;
+    if(!r.data||!r.data.length)throw new Error('Application update was not permitted.');
+    if(x.customer_id){
+      var cp={full_name:p.full_name,mobile:p.mobile,email:p.email,date_of_birth:p.date_of_birth,occupation:p.occupation,monthly_income:p.monthly_income,address:p.address,district:p.district,state:p.state,pincode:p.pincode,pan_number:p.pan_number,aadhaar_number:p.aadhaar_number,kyc_status:p.kyc_status,updated_at:new Date().toISOString()};
+      r=await sb.from('customers').update(cp).eq('id',x.customer_id).select('id');
+      if(r.error)throw r.error;
+    }
+    if(typeof window.closeM==='function')window.closeM();else{var modal=document.getElementById('modal');if(modal)modal.classList.remove('on');}
+    if(typeof window.loadData==='function')await window.loadData();
+    alert('Update saved.');
+  }catch(e){console.error(e);alert('Approval save error: '+(e&&e.message||e));}
+};
+})();
+</script></body></html>
