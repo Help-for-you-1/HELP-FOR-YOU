@@ -133,7 +133,7 @@ function bind(){
             if(typeof window.hfyRenderCustomersFunctional==='function')window.hfyRenderCustomersFunctional();
           },100);
         }
-        else if(['dash','repay'].includes(id)&&typeof window.renderCore==='function'){window.renderCore();if(id==='repay'&&typeof window.hfyRefreshEmiList==='function')setTimeout(window.hfyRefreshEmiList,150);}
+        else if(id==='repay'){if(typeof window.hfyRefreshEmiList==='function'){window.hfyRefreshEmiList();setTimeout(window.hfyRefreshEmiList,500);}}else if(id==='dash'&&typeof window.renderCore==='function'){window.renderCore();}
         else if(id==='approval'){
           if(typeof window.renderCore==='function')window.renderCore();
           setTimeout(function(){
