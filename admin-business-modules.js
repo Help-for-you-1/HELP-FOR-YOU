@@ -247,5 +247,6 @@ window.renderPanel=renderPanel;
 window.renderWithdrawals=renderWithdrawals;
 const origLoad=window.loadData;
 if(origLoad)window.loadData=async function(){const r=await origLoad.apply(this,arguments);await syncGlobals();await refresh();renderWithdrawals();return r};
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',async()=>{await syncGlobals();setup();renderWithdrawals()});else (async()=>{await syncGlobals();setup()})();
+async function bootModules(){try{if(window.hfyAdminReady){const ok=await window.hfyAdminReady;if(!ok)return;}await syncGlobals();setup();renderWithdrawals()}catch(e){console.error('Admin modules boot',e)}}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootModules);else bootModules();
 })();
