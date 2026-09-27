@@ -220,7 +220,10 @@ window.addLoanProduct=()=>modal('Add Loan Product',productForm());
 window.editLoanProduct=i=>{const x=M.products[i];modal('Edit Loan Product',productForm(x));qid('pe').value=x.emi_frequency;qid('pa').value=String(x.active)};
 window.saveLoanProduct=async id=>{const p={name:qid('pn').value.trim(),min_amount:+qid('pmin').value,max_amount:+qid('pmax').value,tenure_months:+qid('pt').value,interest_rate:+qid('pi').value,processing_fee:+qid('pf').value,penalty_percent:+qid('pp').value,emi_frequency:qid('pe').value,active:qid('pa').value==='true',updated_at:new Date().toISOString()};if(!p.name)return alert('Product name required');let r=id?await C().from('loan_products').update(p).eq('id',id):await C().from('loan_products').insert(p);if(r.error)return alert(r.error.message);await audit(id?'Updated loan product':'Created loan product','Settings',id||p.name);closeM();await refresh();alert('Loan product saved')};
 
-async function syncGlobals(){
+async 
+function renderWithdrawals(){const el=qid('withdrawalsBody');if(!el)return;C().from('staff_wallet_withdrawals').select('*,staff:staff_id(employee_id,name,mobile)').order('requested_at',{ascending:false}).then(r=>{if(r.error){el.innerHTML='<p>'+esc(r.error.message)+'</p>';return}const rows=(r.data||[]).map(x=>'<tr><td>'+esc(x.staff?.employee_id||'-')+'</td><td>'+esc(x.staff?.name||'-')+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.status)+'</td><td>'+esc(new Date(x.requested_at).toLocaleString())+'</td><td>'+ (x.status==='pending'?'<button class="btn green" onclick="reviewWithdrawal('+x.id+',\'approved\')">Accept</button> <button class="btn red" onclick="reviewWithdrawal('+x.id+',\'rejected\')">Reject</button>':'-')+'</td></tr>').join('')||'<tr><td colspan="6">No withdrawal requests.</td></tr>';el.innerHTML='<div class="wrap"><table><tr><th>Employee ID</th><th>Staff</th><th>Amount</th><th>Status</th><th>Requested</th><th>Action</th></tr>'+rows+'</table></div>'})}
+window.reviewWithdrawal=async(id,status)=>{try{const remarks=status==='approved'?'Approved by Admin':'Rejected by Admin';const r=await C().rpc('hfy_review_staff_withdrawal',{p_withdrawal_id:id,p_status:status,p_remarks:remarks});if(r.error)throw r.error;renderWithdrawals();alert(status==='approved'?'Withdrawal approved. Amount deducted from wallet.':'Withdrawal rejected. Amount remains in wallet.')}catch(e){alert(e.message||e)}};
+function syncGlobals(){
  try{
   const q=await Promise.all([
    C().from('customers').select('*'),
@@ -236,6 +239,6 @@ async function syncGlobals(){
  }catch(e){console.warn(e)}
 }
 const origLoad=window.loadData;
-if(origLoad)window.loadData=async function(){const r=await origLoad.apply(this,arguments);await syncGlobals();await refresh();return r};
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',async()=>{await syncGlobals();setup()});else (async()=>{await syncGlobals();setup()})();
+if(origLoad)window.loadData=async function(){const r=await origLoad.apply(this,arguments);await syncGlobals();await refresh();renderWithdrawals();return r};
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',async()=>{await syncGlobals();setup();renderWithdrawals()});else (async()=>{await syncGlobals();setup()})();
 })();
