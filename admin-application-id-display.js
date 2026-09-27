@@ -9,7 +9,7 @@ const renderApplicationIds=async()=>{
     if(r.error)throw r.error;
     const trs=[...rows.querySelectorAll('tr')];
     trs.forEach((tr,i)=>{
-      if(!tr.querySelector('td'))return;
+      if(!tr.querySelector('td')||tr.querySelectorAll('td').length>=7)return;
       const app=r.data?.[i];
       if(!app)return;
       const existing=tr.querySelector('td[data-hfy-application-id]');
