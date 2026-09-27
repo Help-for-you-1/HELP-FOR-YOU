@@ -24,7 +24,7 @@ function bind(){
     if(id==='overdue'&&typeof window.renderOverdue==='function')window.renderOverdue();
     if(id==='staff'&&typeof window.renderStaff==='function')window.renderStaff();
     if(['dash','customers','approval','repay'].includes(id)&&typeof window.renderCore==='function')window.renderCore();
-    if(id==='approval'&&typeof window.hfyRenderApprovalOnly==='function')window.hfyRenderApprovalOnly();
+    if(id==='approval'){(async function(){try{var sb=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);var q=await sb.from('loan_applications').select('*').order('created_at',{ascending:false});if(q.error)throw q.error;window.__HFY_APPLICATIONS=q.data||[];if(typeof window.hfyRenderApprovalOnly==='function')window.hfyRenderApprovalOnly();}catch(e){console.error('HFY Approval load failed',e);}})();}
     if(id==='apps'&&typeof window.loadApplications==='function')window.loadApplications();
    }catch(e){console.error('HFY Admin option error',id,e);}
    return false;
