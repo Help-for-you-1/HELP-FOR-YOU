@@ -57,7 +57,16 @@ function renderCorePanels(){
   if(cb)cb.onclick=()=>{list.innerHTML=table(closed);cb.className='btn blue';ab.className='btn gray'};
  }
  const ac=document.getElementById('accountingBody');
- if(ac)ac.innerHTML='<div class="wrap"><table><thead><tr><th>Transaction ID</th><th>Customer</th><th>Loan ID</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>'+(tx.map(x=>'<tr><td>'+esc(x.transaction_id||x.id)+'</td><td>'+esc(c.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+esc(x.loan_id||'-')+'</td><td>'+esc(x.transaction_type||'-')+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.status||'-')+'</td><td>'+esc((x.transaction_date||'').slice(0,10))+'</td></tr>').join('')||'<tr><td colspan="7">No accounting transactions found.</td></tr>')+'</tbody></table></div>';
+ if(ac){
+  const drawAccounting=(items)=>{
+   const successful=items.filter(x=>['successful','success','paid','completed'].includes(String(x.status||'').toLowerCase()));
+   const total=successful.reduce((n,x)=>n+Number(x.amount||0),0);
+   const rowsHtml=items.map(x=>'<tr><td>'+esc(x.transaction_id||x.id||'-')+'</td><td>'+esc(c.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+esc(x.loan_id||'-')+'</td><td>'+esc(x.transaction_type||'-')+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.status||'-')+'</td><td>'+esc((x.transaction_date||x.created_at||'').slice(0,10))+'</td></tr>').join('')||'<tr><td colspan="7">No accounting transactions found.</td></tr>';
+   ac.innerHTML='<h2>Accounting / Ledger</h2><div class="cards"><div class="card">Total Successful Collection<b>'+money(total)+'</b></div><div class="card">Transactions<b>'+items.length+'</b></div></div><div class="wrap"><table><thead><tr><th>Transaction ID</th><th>Customer</th><th>Loan ID</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
+  };
+  drawAccounting(tx);
+  db().from('financial_transactions').select('*').order('transaction_date',{ascending:false}).then(r=>{if(!r.error)drawAccounting(r.data||[]);});
+ }
  const pay=document.getElementById('payments');
  if(pay){
   const total=pays.reduce((n,x)=>n+Number(x.amount||0),0);
