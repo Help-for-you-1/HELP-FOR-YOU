@@ -17,7 +17,15 @@ function maps(){
 function renderCorePanels(){
  const {c}=maps(), loans=window.__HFY_LOANS||[], pays=window.__HFY_PAYMENTS||[], tx=window.__HFY_TRANSACTIONS||[], staff=window.__HFY_STAFF||[], emis=window.__HFY_EMIS||[];
  const la=document.getElementById('loanAccountsBody');
- if(la)la.innerHTML='<div class="wrap"><table><thead><tr><th>Loan ID</th><th>Customer</th><th>Loan Amount</th><th>Total Repayment</th><th>Paid</th><th>Outstanding</th><th>Start Date</th><th>End Date</th><th>Status</th></tr></thead><tbody>'+(loans.map(x=>'<tr><td>'+esc(x.loan_id)+'</td><td>'+esc(c.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+money(x.loan_amount)+'</td><td>'+money(x.total_repayment)+'</td><td>'+money(x.total_paid)+'</td><td>'+money(x.remaining_amount)+'</td><td>'+esc(x.start_date||'-')+'</td><td>'+esc(x.end_date||'-')+'</td><td>'+esc(x.loan_status||'-')+'</td></tr>').join('')||'<tr><td colspan="9">No loan accounts found.</td></tr>')+'</tbody></table></div>';
+ if(la){
+  const isClosed=x=>['closed','completed'].includes(String(x.loan_status||x.status||'').trim().toLowerCase());
+  const table=items=>'<div class="wrap"><table><thead><tr><th>Loan ID</th><th>Customer</th><th>Loan Amount</th><th>Total Repayment</th><th>Paid</th><th>Outstanding</th><th>Start Date</th><th>End Date</th><th>Status</th></tr></thead><tbody>'+(items.map(x=>'<tr><td>'+esc(x.loan_id)+'</td><td>'+esc(c.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+money(x.loan_amount)+'</td><td>'+money(x.total_repayment)+'</td><td>'+money(x.total_paid)+'</td><td>'+money(x.remaining_amount)+'</td><td>'+esc(x.start_date||'-')+'</td><td>'+esc(x.end_date||'-')+'</td><td>'+esc(x.loan_status||x.status||'-')+'</td></tr>').join('')||'<tr><td colspan="9">No loan accounts found.</td></tr>')+'</tbody></table></div>';
+  const active=loans.filter(x=>!isClosed(x)),closed=loans.filter(isClosed);
+  la.innerHTML='<div class="actions" style="margin-bottom:12px"><button class="btn blue" id="laActiveBtn">Active Loan</button><button class="btn gray" id="laClosedBtn">Closed Loan</button></div><div id="laList">'+table(active)+'</div>';
+  const list=document.getElementById('laList'),ab=document.getElementById('laActiveBtn'),cb=document.getElementById('laClosedBtn');
+  if(ab)ab.onclick=()=>{list.innerHTML=table(active);ab.className='btn blue';cb.className='btn gray'};
+  if(cb)cb.onclick=()=>{list.innerHTML=table(closed);cb.className='btn blue';ab.className='btn gray'};
+ }
  const ac=document.getElementById('accountingBody');
  if(ac)ac.innerHTML='<div class="wrap"><table><thead><tr><th>Transaction ID</th><th>Customer</th><th>Loan ID</th><th>Type</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>'+(tx.map(x=>'<tr><td>'+esc(x.transaction_id||x.id)+'</td><td>'+esc(c.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+esc(x.loan_id||'-')+'</td><td>'+esc(x.transaction_type||'-')+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.status||'-')+'</td><td>'+esc((x.transaction_date||'').slice(0,10))+'</td></tr>').join('')||'<tr><td colspan="7">No accounting transactions found.</td></tr>')+'</tbody></table></div>';
  const pay=document.getElementById('payments');
