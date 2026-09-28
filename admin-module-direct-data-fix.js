@@ -14,6 +14,36 @@ function maps(){
  const c=new Map((window.__HFY_CUSTOMERS||[]).map(x=>[String(x.id),x]));
  return {c};
 }
+
+// Functional Collections / Recovery panel — only affects the existing collections module
+function renderCollectionsRecovery(){
+ const el=document.getElementById('collections'); if(!el)return;
+ const cMap=new Map((window.__HFY_CUSTOMERS||[]).map(x=>[String(x.id),x]));
+ const emis=window.__HFY_EMIS||[];
+ const loans=window.__HFY_LOANS||[];
+ const today=new Date().toISOString().slice(0,10);
+ const rows=emis.filter(x=>String(x.status||'').toLowerCase()!=='paid' && Number(x.remaining_amount||x.emi_amount||0)>0 && String(x.due_date||'')<today);
+ const money=v=>'₹'+Number(v||0).toFixed(2);
+ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const activeLoans=new Set(loans.filter(x=>!['closed','completed'].includes(String(x.loan_status||x.status||'').toLowerCase())).map(x=>String(x.loan_id)));
+ const recovery=rows.filter(x=>!activeLoans.size||activeLoans.has(String(x.loan_id)));
+ const total=recovery.reduce((n,x)=>n+Number(x.remaining_amount||x.emi_amount||0),0);
+ el.innerHTML='<h2>Collections / Recovery</h2>'+
+ '<div class="cards"><div class="card">Overdue Cases<b>'+recovery.length+'</b></div><div class="card">Recovery Due<b>'+money(total)+'</b></div></div>'+
+ '<div class="actions"><button class="btn blue" id="crRefresh">↻ Refresh</button><input id="crSearch" placeholder="Search customer / loan ID" style="padding:9px;min-width:220px"></div>'+
+ '<div class="wrap"><table><thead><tr><th>Loan ID</th><th>Customer</th><th>EMI</th><th>Due Date</th><th>Penalty</th><th>Recovery Due</th><th>Status</th></tr></thead><tbody id="crRows"></tbody></table></div>';
+ const body=document.getElementById('crRows'), search=document.getElementById('crSearch');
+ const draw=()=>{
+  const q=String(search?.value||'').toLowerCase().trim();
+  const out=recovery.filter(x=>{const name=cMap.get(String(x.customer_id))?.full_name||'';return !q||String(x.loan_id||'').toLowerCase().includes(q)||name.toLowerCase().includes(q);})
+   .map(x=>'<tr><td>'+esc(x.loan_id||'-')+'</td><td>'+esc(cMap.get(String(x.customer_id))?.full_name||'-')+'</td><td>'+money(x.emi_amount)+'</td><td>'+esc(x.due_date||'-')+'</td><td>'+money(x.penalty)+'</td><td>'+money(x.remaining_amount||x.emi_amount)+'</td><td>'+esc(x.status||'pending')+'</td></tr>').join('');
+  body.innerHTML=out||'<tr><td colspan="7">No overdue recovery records found.</td></tr>';
+ };
+ search?.addEventListener('input',draw);
+ document.getElementById('crRefresh')?.addEventListener('click',async()=>{if(typeof window.loadData==='function')await window.loadData();renderCollectionsRecovery();});
+ draw();
+}
+
 function renderCorePanels(){
  const {c}=maps(), loans=window.__HFY_LOANS||[], pays=window.__HFY_PAYMENTS||[], tx=window.__HFY_TRANSACTIONS||[], staff=window.__HFY_STAFF||[], emis=window.__HFY_EMIS||[];
  const la=document.getElementById('loanAccountsBody');
