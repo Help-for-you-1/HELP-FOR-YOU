@@ -87,12 +87,15 @@ async function renderAccounting(c,l){
  const r=await C().from('financial_transactions').select('*').order('transaction_date',{ascending:false});
  if(r.error){console.error('Accounting ledger load:',r.error);el.innerHTML='<p>Unable to load accounting ledger.</p>';return}
  const rows=r.data||[];
- const successful=rows.filter(x=>String(x.status||'').toLowerCase()==='successful');
+ const successful=rows.filter(x=>['successful','success','paid','completed'].includes(String(x.status||'').toLowerCase()));
  const total=successful.reduce((n,x)=>n+Number(x.amount||0),0);
  const todayKey=today();
- const todayTotal=successful.filter(x=>String(x.transaction_date||'').slice(0,10)===todayKey).reduce((n,x)=>n+Number(x.amount||0),0);
+ const todayTotal=successful.filter(x=>String(x.transaction_date||x.created_at||'').slice(0,10)===todayKey).reduce((n,x)=>n+Number(x.amount||0),0);
  const customerName2=id=>c.get(String(id))?.full_name||'-';
- const body=rows.map(x=>'<tr><td>'+esc((x.transaction_date||x.created_at||'').replace('T',' ').slice(0,19))+'</td><td>'+esc(x.transaction_id)+'</td><td>'+esc(customerName2(x.customer_id))+'</td><td>'+esc(x.loan_id||'-')+'</td><td>'+esc(x.transaction_type||'-')+'</td><td>'+esc(x.payment_method||'-')+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.status||'-')+'</td><td>'+esc(x.reference_number||'-')+'</td></tr>').join('')||'<tr><td colspan="9">No accounting transactions found.</td></tr>';
+ const body=rows.map(x=>{
+  const dt=String(x.transaction_date||x.created_at||'').replace('T',' ').slice(0,19);
+  return '<tr><td>'+esc(dt||'-')+'</td><td>'+esc(x.transaction_id||x.id||'-')+'</td><td>'+esc(customerName2(x.customer_id))+'</td><td>'+esc(x.loan_id||'-')+'</td><td>'+esc(x.transaction_type||'-')+'</td><td>'+esc(x.payment_method||'-')+'</td><td>'+money(x.amount)+'</td><td>'+esc(x.status||'-')+'</td><td>'+esc(x.reference_number||x.reference||'-')+'</td></tr>';
+ }).join('')||'<tr><td colspan="9">No accounting transactions found.</td></tr>';
  el.innerHTML='<div class="cards" style="margin-top:0"><div class="card">Total Successful Collection<b>'+money(total)+'</b></div><div class="card">Today Collection<b>'+money(todayTotal)+'</b></div><div class="card">Transactions<b>'+rows.length+'</b></div></div><div class="actions"><button class="btn blue" onclick="renderAccounting(new Map((window.__HFY_CUSTOMERS||[]).map(x=>[String(x.id),x])),new Map((window.__HFY_LOANS||[]).map(x=>[String(x.id),x])))">Refresh Ledger</button></div><div class="wrap"><table><thead><tr><th>Date & Time</th><th>Transaction ID</th><th>Customer</th><th>Loan ID</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th><th>Reference</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 window.addRisk=async()=>{const cs=customers();const ls=loans();modal('Add Credit Risk Review','<div class="form"><label>Customer<select id="rrc">'+cs.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.full_name||x.name||x.id)+'</option>').join('')+'</select></label><label>Loan Account<select id="rrl">'+ls.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.loan_id||x.id)+'</option>').join('')+'</select></label><label>Risk Level<select id="rrlevel"><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="critical">critical</option></select></label><label>Score<input id="rrscore" type="number" min="0" max="100" step="0.01"></label><label class="full">Reason<textarea id="rrreason"></textarea></label><label>Reviewed By<input id="rrby" value="Admin"></label><div class="full"><button class="btn green" onclick="saveRisk()">Save Risk Review</button></div></div>')};
