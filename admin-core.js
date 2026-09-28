@@ -177,6 +177,7 @@ window.saveStaffBonus=async i=>{try{const x=D.s[i],amount=Number($('wba').value|
 'use strict';
 const _staffWallet=window.staffWallet;
 window.staffWallet=async function(i){
+  if(!D.s[i]&&window.__HFY_STAFF&&window.__HFY_STAFF[i])D.s[i]=window.__HFY_STAFF[i];
   await _staffWallet(i);
   try{
     const x=D.s[i];
