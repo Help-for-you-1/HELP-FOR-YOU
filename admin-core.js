@@ -170,3 +170,36 @@ window.saveStaffCommission=async i=>{try{const x=D.s[i],amount=Number($('wra').v
 
 window.addStaffBonus=async i=>{const x=D.s[i];if(!x)return;openBox('Add Staff Bonus',`<div class="form"><label>Staff<input value="${esc(x.name)}" readonly></label><label>Bonus Amount<input id="wba" type="number" min="0.01" step="0.01" placeholder="Enter bonus amount"></label><label class="full">Remarks<input id="wbr" placeholder="Staff bonus"></label><div class="full"><button class="btn green" onclick="saveStaffBonus(${i})">Add Bonus to Wallet</button></div></div>`)};
 window.saveStaffBonus=async i=>{try{const x=D.s[i],amount=Number($('wba').value||0);if(amount<=0)return alert('Enter bonus amount.');const r=await db().rpc('hfy_add_staff_bonus',{p_staff_id:x.id,p_bonus_amount:amount,p_remarks:$('wbr').value.trim()||null});if(r.error)throw r.error;closeM();await loadData();alert('Staff bonus added to wallet: '+money(r.data?.bonus||amount));}catch(e){fail(e)}};
+
+
+/* Staff Wallet — withdrawal review */
+(function(){
+'use strict';
+const _staffWallet=window.staffWallet;
+window.staffWallet=async function(i){
+  await _staffWallet(i);
+  try{
+    const x=D.s[i];
+    const r=await db().from('staff_wallet_withdrawals').select('*').eq('staff_id',x.id).order('requested_at',{ascending:false}).limit(50);
+    if(r.error)throw r.error;
+    const esc2=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const rows=(r.data||[]).map(v=>{
+      const s=String(v.status||'pending').toLowerCase();
+      const actions=s==='pending'?' <button class="btn green" onclick="reviewStaffWithdrawal(\\''+esc2(String(v.id))+"\\','approved',"+i+')">Accept</button> <button class="btn red" onclick="reviewStaffWithdrawal(\\''+esc2(String(v.id))+"\\','rejected',"+i+')">Reject</button>':'-';
+      return '<tr><td>'+esc2((v.requested_at||v.created_at||'').slice(0,19).replace('T',' '))+'</td><td>'+money(v.amount)+'</td><td>'+esc2(v.status||'pending')+'</td><td>'+esc2(v.remarks||'-')+'</td><td>'+actions+'</td></tr>';
+    }).join('')||'<tr><td colspan="5">No withdrawal requests.</td></tr>';
+    const mb=document.getElementById('mb');
+    if(mb)mb.innerHTML+='<h3>Withdrawal Requests</h3><div class="wrap"><table><tr><th>Requested</th><th>Amount</th><th>Status</th><th>Remarks</th><th>Action</th></tr>'+rows+'</table></div>';
+  }catch(e){fail(e)}
+};
+window.reviewStaffWithdrawal=async function(id,status,i){
+  try{
+    if(status!=='approved'&&status!=='rejected')return;
+    const r=await db().rpc('hfy_review_staff_withdrawal',{p_withdrawal_id:id,p_status:status});
+    if(r.error)throw r.error;
+    await loadData();
+    await staffWallet(i);
+    alert('Withdrawal '+(status==='approved'?'accepted':'rejected')+' successfully.');
+  }catch(e){fail(e)}
+};
+})();
