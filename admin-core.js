@@ -172,9 +172,7 @@ window.addStaffBonus=async i=>{const x=D.s[i];if(!x)return;openBox('Add Staff Bo
 window.saveStaffBonus=async i=>{try{const x=D.s[i],amount=Number($('wba').value||0);if(amount<=0)return alert('Enter bonus amount.');const r=await db().rpc('hfy_add_staff_bonus',{p_staff_id:x.id,p_bonus_amount:amount,p_remarks:$('wbr').value.trim()||null});if(r.error)throw r.error;closeM();await loadData();alert('Staff bonus added to wallet: '+money(r.data?.bonus||amount));}catch(e){fail(e)}};
 
 
-window.renderWithdrawals=async function(){try{const box=document.getElementById('withdrawals');if(!box)return;const client=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);const r=await client.from('staff_wallet_withdrawals').select('*').order('requested_at',{ascending:false}).limit(100);if(r.error)throw r.error;const staffMap={};(window.__HFY_STAFF||[]).forEach(s=>staffMap[String(s.id)]=s);const escW=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const rows=(r.data||[]).map(v=>{const s=staffMap[String(v.staff_id)],st=String(v.status||'pending').toLowerCase();const actions=st==='pending'?'<button class="btn green" onclick="reviewStaffWithdrawal(\''+escW(v.id)+'\',\'approved\')">Accept</button> <button class="btn red" onclick="reviewStaffWithdrawal(\''+escW(v.id)+'\',\'rejected\')">Reject</button>':'-';return '<tr><td>'+escW(v.id)+'</td><td>'+escW(s?.name||('Staff #'+v.staff_id))+'</td><td>₹'+Number(v.amount||0).toFixed(2)+'</td><td>'+escW(st)+'</td><td>'+escW((v.requested_at||'').slice(0,19).replace('T',' '))+'</td><td>'+escW(v.remarks||'-')+'</td><td>'+actions+'</td></tr>';}).join('')||'<tr><td colspan="7">No withdrawal requests found.</td></tr>';box.innerHTML='<h2>💸 Withdrawal Requests</h2><div class="wrap"><table><thead><tr><th>ID</th><th>Staff</th><th>Amount</th><th>Status</th><th>Requested</th><th>Remarks</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>;}catch(e){console.error(e);alert('Withdrawal data error: '+(e?.message||e))}};
-
-/* Staff Wallet — withdrawal review */
+window.renderWithdrawals=async function(){try{const box=document.getElementById('withdrawals');if(!box)return;const client=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);const r=await client.from('staff_wallet_withdrawals').select('*').order('requested_at',{ascending:false}).limit(100);if(r.error)throw r.error;const staffMap={};(window.__HFY_STAFF||[]).forEach(s=>staffMap[String(s.id)]=s);const escW=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const rows=(r.data||[]).map(v=>{const s=staffMap[String(v.staff_id)],st=String(v.status||'pending').toLowerCase();const actions=st==='pending'?'<button class="btn green" onclick="reviewStaffWithdrawal('+Number(v.id)+',1)">Accept</button> <button class="btn red" onclick="reviewStaffWithdrawal('+Number(v.id)+',0)">Reject</button>':'-';return '<tr><td>'+escW(v.id)+'</td><td>'+escW(s?.name||('Staff #'+v.staff_id))+'</td><td>₹'+Number(v.amount||0).toFixed(2)+'</td><td>'+escW(st)+'</td><td>'+escW((v.requested_at||'').slice(0,19).replace('T',' '))+'</td><td>'+escW(v.remarks||'-')+'</td><td>'+actions+'</td></tr>';}).join('')||'<tr><td colspan="7">No withdrawal requests found.</td></tr>';box.innerHTML='<h2>💸 Withdrawal Requests</h2><div class="wrap"><table><thead><tr><th>ID</th><th>Staff</th><th>Amount</th><th>Status</th><th>Requested</th><th>Remarks</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div>;}catch(e){console.error(e);alert('Withdrawal data error: '+(e?.message||e));}};\n\n/* Staff Wallet — withdrawal review */
 (function(){
 'use strict';
 const _staffWallet=window.staffWallet;
@@ -195,14 +193,5 @@ window.staffWallet=async function(i){
     if(mb)mb.innerHTML+='<h3>Withdrawal Requests</h3><div class="wrap"><table><tr><th>Requested</th><th>Amount</th><th>Status</th><th>Remarks</th><th>Action</th></tr>'+rows+'</table></div>';
   }catch(e){fail(e)}
 };
-window.reviewStaffWithdrawal=async function(id,status){
-  try{
-    if(status!=='approved'&&status!=='rejected')return;
-    const client=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
-    const r=await client.rpc('hfy_review_staff_withdrawal',{p_withdrawal_id:id,p_status:status});
-    if(r.error)throw r.error;
-    await window.renderWithdrawals();
-    alert('Withdrawal '+(status==='approved'?'accepted':'rejected')+' successfully.');
-  }catch(e){console.error(e);alert('Withdrawal action error: '+(e?.message||e))}
-};
+window.reviewStaffWithdrawal=async function(id,status){try{status=status===1?'approved':status===0?'rejected':status;const client=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);const r=await client.rpc('hfy_review_staff_withdrawal',{p_withdrawal_id:id,p_status:status});if(r.error)throw r.error;await window.renderWithdrawals();alert('Withdrawal action completed successfully.');}catch(e){console.error(e);alert('Withdrawal action error: '+(e?.message||e));}};
 })();
