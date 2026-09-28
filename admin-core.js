@@ -185,7 +185,7 @@ window.staffWallet=async function(i){
     const esc2=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const rows=(r.data||[]).map(v=>{
       const s=String(v.status||'pending').toLowerCase();
-      const actions=s==='pending'?' <button class="btn green" onclick="reviewStaffWithdrawal(\\''+esc2(String(v.id))+"\\','approved',"+i+')">Accept</button> <button class="btn red" onclick="reviewStaffWithdrawal(\\''+esc2(String(v.id))+"\\','rejected',"+i+')">Reject</button>':'-';
+      const actions=s==='pending'?\" <button class=\\\"btn green\\\" onclick=\\\"reviewStaffWithdrawal('\\\"+esc2(String(v.id))+\\\"','approved',\\\"+i+\\\")\\\">Accept</button> <button class=\\\"btn red\\\" onclick=\\\"reviewStaffWithdrawal('\\\"+esc2(String(v.id))+\\\"','rejected',\\\"+i+\\\")\\\">Reject</button>\":\"-\";
       return '<tr><td>'+esc2((v.requested_at||v.created_at||'').slice(0,19).replace('T',' '))+'</td><td>'+money(v.amount)+'</td><td>'+esc2(v.status||'pending')+'</td><td>'+esc2(v.remarks||'-')+'</td><td>'+actions+'</td></tr>';
     }).join('')||'<tr><td colspan="5">No withdrawal requests.</td></tr>';
     const mb=document.getElementById('mb');
