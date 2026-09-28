@@ -195,14 +195,14 @@ window.staffWallet=async function(i){
     if(mb)mb.innerHTML+='<h3>Withdrawal Requests</h3><div class="wrap"><table><tr><th>Requested</th><th>Amount</th><th>Status</th><th>Remarks</th><th>Action</th></tr>'+rows+'</table></div>';
   }catch(e){fail(e)}
 };
-window.reviewStaffWithdrawal=async function(id,status,i){
+window.reviewStaffWithdrawal=async function(id,status){
   try{
     if(status!=='approved'&&status!=='rejected')return;
-    const r=await db().rpc('hfy_review_staff_withdrawal',{p_withdrawal_id:id,p_status:status});
+    const client=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
+    const r=await client.rpc('hfy_review_staff_withdrawal',{p_withdrawal_id:id,p_status:status});
     if(r.error)throw r.error;
-    await loadData();
-    await staffWallet(i);
+    await window.renderWithdrawals();
     alert('Withdrawal '+(status==='approved'?'accepted':'rejected')+' successfully.');
-  }catch(e){fail(e)}
+  }catch(e){console.error(e);alert('Withdrawal action error: '+(e?.message||e))}
 };
 })();
