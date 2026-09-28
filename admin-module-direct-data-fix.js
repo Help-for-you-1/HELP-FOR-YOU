@@ -87,6 +87,7 @@ async function refresh(){
   await loadStaffDirect();
   renderCorePanels();
   renderStaffDirect();
+  renderCollectionsRecovery();
   if(typeof window.renderPanel==='function')MODULES.forEach(id=>{try{window.renderPanel(id)}catch(e){console.warn('HFY module render',id,e)}});
  }catch(e){console.error('HFY final module refresh',e)}
  finally{busy=false}
@@ -103,6 +104,7 @@ async function open(id,el){
  try{
   if(CORE.includes(id)&&typeof window.renderCore==='function')window.renderCore();
   if(id==='staff')renderStaffDirect();
+  if(id==='collections')renderCollectionsRecovery();
   if(id==='apps'&&typeof window.loadApplications==='function')await window.loadApplications();
   if(MODULES.includes(id)&&typeof window.renderPanel==='function')window.renderPanel(id);
   if(id==='withdrawals'&&typeof window.renderWithdrawals==='function')window.renderWithdrawals();
