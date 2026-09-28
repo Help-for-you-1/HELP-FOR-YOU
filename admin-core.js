@@ -182,7 +182,7 @@ window.renderWithdrawals=async function(){try{
     const s=staffMap[String(v.staff_id)];
     const st=String(v.status||'pending').toLowerCase();
     const actions=st==='pending'
-      ? '<button class="btn green" onclick="reviewStaffWithdrawal(\\''+escW(v.id)+'\\',\\'approved\\',null)">Accept</button><button class="btn red" onclick="reviewStaffWithdrawal(\\''+escW(v.id)+'\\',\\'rejected\\',null)">Reject</button>'
+      ? '<button class="btn green" onclick="reviewStaffWithdrawal(\''+escW(v.id)+'\\',\\'approved\\',null)">Accept</button><button class="btn red" onclick="reviewStaffWithdrawal(\''+escW(v.id)+'\\',\\'rejected\\',null)">Reject</button>'
       : '-';
     return '<tr><td>'+escW(v.id)+'</td><td>'+escW(s?.name||('Staff #'+v.staff_id))+'</td><td>'+money(v.amount)+'</td><td>'+escW(st)+'</td><td>'+escW((v.requested_at||'').slice(0,19).replace('T',' '))+'</td><td>'+escW(v.remarks||'-')+'</td><td>'+actions+'</td></tr>';
   }).join('')||'<tr><td colspan="7">No withdrawal requests found.</td></tr>';
