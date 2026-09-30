@@ -22,8 +22,10 @@ window.HFY_LOGO_READY=(async function(){
  return window.HFY_LOGO_URL;
 })();
 window.HFY_APPLY_LOGO=apply;
-if(/(?:^|\/)index\.html$/i.test(location.pathname)||/\/HELP-FOR-YOU\/?$/i.test(location.pathname)){
- var loadDocScript=function(){var s=document.createElement('script');s.src='customer-document-reupload.js?v=20261001-2';s.defer=true;document.head.appendChild(s)};
+var isHome=/(?:^|\/)index\.html$/i.test(location.pathname)||/\/HELP-FOR-YOU\/?$/i.test(location.pathname);
+var isAdmin=/(?:^|\/)admin(?:-stable)?\.html$/i.test(location.pathname);
+if(isHome||isAdmin){
+ var loadDocScript=function(){var s=document.createElement('script');s.src=(isAdmin?'admin-document-verification.js?v=20261001-1':'customer-document-reupload.js?v=20261001-2');s.defer=true;document.head.appendChild(s)};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadDocScript,{once:true});else loadDocScript();
 }
 })();
