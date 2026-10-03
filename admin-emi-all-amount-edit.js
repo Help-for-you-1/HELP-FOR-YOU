@@ -13,7 +13,7 @@ window.hfyEditEmi=async function(id){
   if(r.error)throw r.error;if(!r.data)throw new Error('EMI not found');
   var e=r.data;
   var emi=N(e.emi_amount),pen=N(e.penalty),total=N(e.total_due),paid=N(e.paid_amount),remaining=N(e.remaining_amount);
-  var s=String(e.status||'pending').toLowerCase();
+  var s=String(e.status||'upcoming').toLowerCase();
   openBox('Edit EMI — All Amounts','<div class="form">'+
    '<label>EMI Number<input value="'+E(e.emi_number)+'" readonly></label>'+ 
    '<label>Due Date<input id="hfyaeDue" type="date" value="'+E(String(e.due_date||'').slice(0,10))+'"></label>'+ 
@@ -22,7 +22,7 @@ window.hfyEditEmi=async function(id){
    '<label>Total Due<input id="hfyaeTotal" type="text" readonly value="'+total.toFixed(2)+'"></label>'+ 
    '<label>Paid Amount<input id="hfyaePaid" type="number" min="0" step="0.01" value="'+paid.toFixed(2)+'"></label>'+ 
    '<label>Remaining Amount<input id="hfyaeRemain" type="text" readonly value="'+remaining.toFixed(2)+'"></label>'+ 
-   '<label>Status<select id="hfyaeStatus"><option value="pending" '+(s==='pending'?'selected':'')+'>Pending</option><option value="overdue" '+(s==='overdue'?'selected':'')+'>Overdue</option><option value="partial" '+(s==='partial'?'selected':'')+'>Partial</option><option value="paid" '+(s==='paid'?'selected':'')+'>Paid</option></select></label>'+ 
+   '<label>Status<select id="hfyaeStatus"><option value="upcoming" '+(s==='upcoming'?'selected':'')+'>Pending</option><option value="due" '+(s==='due'?'selected':'')+'>Due</option><option value="overdue" '+(s==='overdue'?'selected':'')+'>Overdue</option><option value="partial" '+(s==='partial'?'selected':'')+'>Partial</option><option value="paid" '+(s==='paid'?'selected':'')+'>Paid</option></select></label>'+ 
    '<div class="full"><button class="btn blue" onclick="hfySaveEmi(\''+E(id)+'\')">Save Changes</button></div></div>');
   function calc(){var a=N(document.getElementById('hfyaeAmt')?.value),p=N(document.getElementById('hfyaePen')?.value),pa=N(document.getElementById('hfyaePaid')?.value),t=a+p;var rm=Math.max(0,t-pa);var ti=document.getElementById('hfyaeTotal'),ri=document.getElementById('hfyaeRemain');if(ti)ti.value=t.toFixed(2);if(ri)ri.value=rm.toFixed(2)}
   document.getElementById('hfyaeAmt')?.addEventListener('input',calc);document.getElementById('hfyaePen')?.addEventListener('input',calc);document.getElementById('hfyaePaid')?.addEventListener('input',calc);
@@ -34,11 +34,12 @@ window.hfySaveEmi=async function(id){
   var a=N(document.getElementById('hfyaeAmt')?.value);
   var p=N(document.getElementById('hfyaePen')?.value);
   var pa=N(document.getElementById('hfyaePaid')?.value);
-  var s=document.getElementById('hfyaeStatus')?.value||'pending';
+  var s=document.getElementById('hfyaeStatus')?.value||'upcoming';
   if(!d)throw new Error('Due Date is required');
   if(a<0||p<0||pa<0)throw new Error('Amount cannot be negative');
   var total=a+p;if(pa>total)pa=total;
   if(pa>=total && total>0)s='paid';else if(pa>0)s='partial';
+  if(s==='pending')s='upcoming';
   var payload={due_date:d,emi_amount:a,penalty:p,paid_amount:pa,status:s};
   var r=await C().from('loan_emi_schedule').update(payload).eq('id',id).select('id').maybeSingle();
   if(r.error)throw r.error;
