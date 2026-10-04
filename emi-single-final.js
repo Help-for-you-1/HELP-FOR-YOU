@@ -1,19 +1,18 @@
 /* HELP FOR YOU — SINGLE ADMIN EMI / REPAYMENT FLOW
-   One renderer + one Pay Now handler. Admin overdue charge: 5% per overdue day (compounded).
+   One renderer + one Pay Now handler. Overdue charge: ₹20 plus stored penalty.
 */
 (()=>{'use strict';
 const db=()=>window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>'₹'+Number(v||0).toFixed(2);
 const today=()=>new Date().toISOString().slice(0,10);
-const penalty=e=>{
- const due=String(e.due_date||'').slice(0,10),t=today();
- if(!due||due>=t||String(e.status||'').toLowerCase()==='paid')return Number(e.penalty||0);
- const days=Math.max(0,Math.floor((new Date(t+'T00:00:00')-new Date(due+'T00:00:00'))/86400000));
- return Number((Number(e.emi_amount||0)*(Math.pow(1.05,days)-1)).toFixed(2));
+const overdueCharge=e=>{
+ const due=String(e.due_date||'').slice(0,10),t=today(),paid=Number(e.paid_amount||0),emi=Number(e.emi_amount||0);
+ return due&&due<t&&paid<emi&&String(e.status||'').toLowerCase()!=='paid'?20:0;
 };
+const penalty=e=>Number(e.penalty||0);
 const stat=e=>{
- const p=penalty(e),td=Number(e.emi_amount||0)+p,pa=Number(e.paid_amount||0),r=Math.max(0,td-pa);
+ const p=penalty(e),oc=overdueCharge(e),td=Number(e.emi_amount||0)+oc+p,pa=Number(e.paid_amount||0),r=Math.max(0,td-pa);
  if(r<=0||String(e.status||'').toLowerCase()==='paid')return 'paid';
  return String(e.due_date||'').slice(0,10)<today()?'overdue':'pending';
 };
@@ -33,7 +32,7 @@ async function refreshList(){
   const c=customers.find(x=>String(x.id)===String(l.customer_id));
   const es=emis.filter(e=>String(e.loan_account_id||e.loan_id)===String(l.id||l.loan_id));
   let total=0,paid=0,overdue=0;
-  es.forEach(e=>{const p=penalty(e),td=Number(e.emi_amount||0)+p,pa=Number(e.paid_amount||0);total+=td;paid+=pa;if(stat(e)==='overdue')overdue+=Math.max(0,td-pa);});
+  es.forEach(e=>{const p=penalty(e),oc=overdueCharge(e),td=Number(e.emi_amount||0)+oc+p,pa=Number(e.paid_amount||0);total+=td;paid+=pa;if(stat(e)==='overdue')overdue+=Math.max(0,td-pa);});
   const status=String(l.loan_status||l.status||'').trim().toLowerCase()==='closed'||String(l.loan_status||l.status||'').trim().toLowerCase()==='completed'?'closed':'active';
   return '<tr><td>'+esc(c?.full_name||'-')+'</td><td>'+esc(l.loan_id||'-')+'</td><td>'+esc(c?.mobile||'-')+'</td><td>'+money(l.loan_amount)+'</td><td>'+money(total)+'</td><td>'+esc(l.start_date||'-')+'</td><td>'+money(overdue)+'</td><td class="'+(status==='paid'?'paid':status==='overdue'?'over':'pending')+'"><b>'+status+'</b></td><td><button class="btn blue" onclick="viewLoanEmi('+i+')">View</button></td></tr>';
  }).join('')||'<tr><td colspan="9">No active EMI / Repayment records.</td></tr>';
@@ -44,12 +43,12 @@ window.viewLoanEmi=async function(i){
   const s=db(),q=await s.from('loan_emi_schedule').select('*').eq('loan_account_id',loan.id).order('emi_number',{ascending:true});
   if(q.error)throw q.error;
   const c=await s.from('customers').select('full_name,mobile').eq('id',loan.customer_id).maybeSingle();if(c.error)throw c.error;
-  const es=q.data||[];let paid=0,rem=0,pen=0,pc=0,pending=0,over=0;
-  const rows=es.map(e=>{const p=penalty(e),a=Number(e.emi_amount||0),td=a+p,pa=Number(e.paid_amount||0),r=Math.max(0,td-pa),st=stat(e);paid+=pa;rem+=r;pen+=p;if(st==='paid')pc++;else if(st==='overdue')over++;else pending++;
+  const es=q.data||[];let paid=0,rem=0,pen=0,overdueTotal=0,pc=0,pending=0,over=0;
+  const rows=es.map(e=>{const p=penalty(e),oc=overdueCharge(e),a=Number(e.emi_amount||0),td=a+oc+p,pa=Number(e.paid_amount||0),r=Math.max(0,td-pa),st=stat(e);paid+=pa;rem+=r;pen+=p;overdueTotal+=oc;if(st==='paid')pc++;else if(st==='overdue')over++;else pending++;
    const action=st==='paid'?'<button class="btn red" onclick="hfyMarkEmiUnpaid(\''+esc(e.id)+'\')">Mark Unpaid</button>':'<button class="btn '+(st==='overdue'?'red':'green')+'" onclick="hfyPay(\''+esc(e.id)+'\')">Pay Now</button>';
-   return '<tr><td>'+esc(e.emi_number)+'</td><td>'+esc(String(e.due_date||'').slice(0,10))+'</td><td>'+money(a)+'</td><td>'+money(p)+'</td><td>'+money(td)+'</td><td>'+money(pa)+'</td><td>'+money(r)+'</td><td class="'+(st==='paid'?'paid':st==='overdue'?'over':'pending')+'"><b>'+st+'</b></td><td>'+action+' <button class="btn gray" onclick="hfyEditEmi(\''+esc(e.id)+'\')">Edit</button></td></tr>';
+   return '<tr><td>'+esc(e.emi_number)+'</td><td>'+esc(String(e.due_date||'').slice(0,10))+'</td><td>'+money(a)+'</td><td>'+money(oc)+'</td><td>'+money(p)+'</td><td>'+money(td)+'</td><td>'+money(pa)+'</td><td>'+money(r)+'</td><td class="'+(st==='paid'?'paid':st==='overdue'?'over':'pending')+'"><b>'+st+'</b></td><td>'+action+' <button class="btn gray" onclick="hfyEditEmi(\''+esc(e.id)+'\')">Edit</button></td></tr>';
   }).join('');
-  openBox('Full EMI List','<p><b>Name:</b> '+esc(c.data?.full_name||'-')+' &nbsp; <b>Loan ID:</b> '+esc(loan.loan_id||'-')+' &nbsp; <b>Mobile:</b> '+esc(c.data?.mobile||'-')+' &nbsp; <b>Sanction Loan:</b> '+money(loan.loan_amount)+' &nbsp; <b>Total Loan:</b> '+money(es.reduce((n,e)=>n+Number(e.emi_amount||0)+penalty(e),0))+' &nbsp; <b>Sanction Date:</b> '+esc(loan.start_date||'-')+'</p><div class="wrap"><table style="min-width:1200px"><thead><tr><th>EMI No.</th><th>Due Date</th><th>EMI Amount</th><th>Penalty</th><th>Total Due</th><th>Paid</th><th>Remaining</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div><p><b>Total EMI:</b> '+es.length+' &nbsp; <b>Paid:</b> '+pc+' &nbsp; <b>Pending:</b> '+pending+' &nbsp; <b>Overdue:</b> '+over+' &nbsp; <b>Total Paid:</b> '+money(paid)+' &nbsp; <b>Remaining:</b> '+money(rem)+' &nbsp; <b>Penalty:</b> '+money(pen)+' &nbsp; <b>Total Due:</b> '+money(rem)+'</p>');
+  openBox('Full EMI List','<p><b>Name:</b> '+esc(c.data?.full_name||'-')+' &nbsp; <b>Loan ID:</b> '+esc(loan.loan_id||'-')+' &nbsp; <b>Mobile:</b> '+esc(c.data?.mobile||'-')+' &nbsp; <b>Sanction Loan:</b> '+money(loan.loan_amount)+' &nbsp; <b>Total Loan:</b> '+money(es.reduce((n,e)=>n+Number(e.emi_amount||0)+penalty(e),0))+' &nbsp; <b>Sanction Date:</b> '+esc(loan.start_date||'-')+'</p><div class="wrap"><table style="min-width:1200px"><thead><tr><th>EMI No.</th><th>Due Date</th><th>EMI Amount</th><th>Overdue</th><th>Penalty</th><th>Total Due</th><th>Paid</th><th>Remaining</th><th>Status</th><th>Action</th></tr></thead><tbody>'+rows+'</tbody></table></div><p><b>Total EMI:</b> '+es.length+' &nbsp; <b>Paid:</b> '+pc+' &nbsp; <b>Pending:</b> '+pending+' &nbsp; <b>Overdue:</b> '+over+' &nbsp; <b>Total Paid:</b> '+money(paid)+' &nbsp; <b>Remaining:</b> '+money(rem)+' &nbsp; <b>Penalty:</b> '+money(pen)+' &nbsp; <b>Total Due:</b> '+money(rem)+'</p>');
  }catch(e){console.error(e);alert('EMI list load failed: '+(e?.message||e));}
 };
 window.hfyPay=async function(id){
