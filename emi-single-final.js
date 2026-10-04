@@ -55,7 +55,7 @@ window.hfyPay=async function(id){
  try{
   const s=db(),q=await s.from('loan_emi_schedule').select('*').eq('id',id).maybeSingle();if(q.error)throw q.error;
   const e=q.data;if(!e)return alert('EMI record not found.');
-  const p=penalty(e),remaining=Math.max(0,Number(e.emi_amount||0)+p-Number(e.paid_amount||0));if(remaining<=0)return alert('This EMI is already paid.');
+  const p=penalty(e),due=String(e.due_date||'').slice(0,10),overdue=due&&due<today()&&Number(e.paid_amount||0)<Number(e.emi_amount||0)&&String(e.status||'').toLowerCase()!=='paid'?20:0,remaining=Math.max(0,Number(e.emi_amount||0)+p+overdue-Number(e.paid_amount||0));if(remaining<=0)return alert('This EMI is already paid.');
   let customer='-';if(e.customer_id){const c=await s.from('customers').select('full_name').eq('id',e.customer_id).maybeSingle();if(c.error)throw c.error;customer=c.data?.full_name||'-';}
   window.__hfySinglePay={id:e.id,remaining};
   openBox('EMI Payment Confirmation','<div class="form"><div class="full"><b>Customer:</b> '+esc(customer)+'</div><label>EMI No.<input id="hfySinglePayEmiNo" type="text" value="'+esc(e.emi_number)+'" readonly></label><label>EMI Amount<input id="hfySinglePayAmount" type="number" min="0.01" step="0.01" value="'+remaining.toFixed(2)+'"></label><label>Payment Method<select id="hfySinglePayMethod"><option value="Cash">Cash</option><option value="UPI">UPI</option></select></label><div class="full"><button class="btn green" onclick="hfySingleConfirmPay()">Confirm Payment</button></div></div>');
