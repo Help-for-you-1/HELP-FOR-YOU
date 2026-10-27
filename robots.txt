@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /HELP-FOR-YOU/
+
+Sitemap: https://help-for-you-1.github.io/HELP-FOR-YOU/sitemap.xml
