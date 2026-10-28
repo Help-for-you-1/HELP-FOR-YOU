@@ -28,9 +28,10 @@ function fallbackEditor(i){
  field('Interest Rate %','air',x.interest_rate??0,'number')+field('EMI Amount','aemi',x.emi_amount??0,'number')+
  field('Daily EMI','adaily',x.daily_emi??0,'number')+field('Total Interest','ati',x.total_interest??0,'number')+
  field('Total Repayment','atr',x.total_repayment??0,'number')+field('Sanction Date','asd',x.sanction_date||'','date')+
- '<label>Status<select id="ast"><option value="draft">Draft</option><option value="submitted">Submitted</option><option value="pending">Pending</option><option value="under_review">Under Review</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label>'+
+ '<label>Status<select id="ast"><option value="draft">Draft</option><option value="submitted">Submitted</option><option value="pending">Pending</option><option value="under_review">Under Review</option><option value="waiting">Wait (Custom Days)</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label>'+
  '<label>KYC<select id="ak"><option>Pending</option><option>Under Review</option><option>Verified</option><option>Rejected</option></select></label>'+
  field('Bank Verification','ab',x.bank_verification||'Pending')+field('Fraud Check','af',x.fraud_check||'Pending')+
+ '<label>Wait Days (1–90)<input id="waitDays" type="number" min="1" max="90" value="'+esc(x.wait_days??15)+'"></label>'+
  '<label class="full">Admin Remarks<input id="ar" value="'+esc(x.admin_remarks||'')+'"></label>'+
  '<div class="full"><button class="btn blue" onclick="saveApproval('+Number(i)+')">Save Full Form</button><button class="btn green" onclick="approve('+Number(i)+')">Approve</button><button class="btn red" onclick="reject('+Number(i)+')">Reject</button></div></div>';
  const at=document.getElementById('at'),ast=document.getElementById('ast'),ak=document.getElementById('ak');
