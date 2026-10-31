@@ -2,7 +2,8 @@
 (()=>{
 'use strict';
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-async function docUrl(url){const u=String(url||'').trim();if(!u)return '';if(/^https?:\/\//i.test(u))return u;try{if(window.supabase&&window.HFY_SUPABASE_URL&&window.HFY_SUPABASE_PUBLISHABLE_KEY){const s=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);const p=s.storage.from('loan-documents').getPublicUrl(u);if(p?.data?.publicUrl)return p.data.publicUrl;}}catch(e){}return u;}\nfunction link(label,url){const u=String(url||'').trim();return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px 4px 0">View '+esc(label)+'</a>':'<span style="color:#888;margin-right:10px">'+esc(label)+': Not uploaded</span>';}
+async function docUrl(url){const u=String(url||'').trim();if(!u)return '';if(/^https?:\/\//i.test(u))return u;try{if(window.supabase&&window.HFY_SUPABASE_URL&&window.HFY_SUPABASE_PUBLISHABLE_KEY){const s=window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);const p=s.storage.from('loan-documents').getPublicUrl(u);if(p?.data?.publicUrl)return p.data.publicUrl;}}catch(e){}return u;}
+function link(label,url){const u=String(url||'').trim();return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener" style="display:inline-block;margin:4px 6px 4px 0">View '+esc(label)+'</a>':'<span style="color:#888;margin-right:10px">'+esc(label)+': Not uploaded</span>';}
 function field(label,id,value,type){return '<label>'+label+'<input id="'+id+'" type="'+(type||'text')+'" value="'+esc(value??'')+'"></label>';}
 function fallbackEditor(i){
  const rows=window.__HFY_APPLICATIONS||[],x=rows[Number(i)],mb=document.getElementById('mb'),modal=document.getElementById('modal');
