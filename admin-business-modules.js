@@ -105,7 +105,7 @@ window.saveHfyApplicationFee=async(id)=>{
   if(!input||!Number.isFinite(amount)||amount<0)return alert('Please enter a valid application fee (0 or greater).');
   const r=await C().rpc('hfy_admin_set_application_fee',{p_application_id:Number(id),p_amount:amount});
   if(r.error)throw r.error;if(!r.data?.success)throw new Error(r.data?.message||'Fee could not be saved');
-  alert('Application fee saved successfully for Application ID '+id+'.');
+  alert('Application fee saved successfully for Application ID '+id+'.'+(r.data.fee_changed?' The previous slip has been reset; the customer must pay the updated fee and upload a new slip.':' No fee change detected; existing payment status is unchanged.'));
   await window.renderHfyApplicationFees();
  }catch(e){console.error('Application fee save:',e);alert('Application fee save failed: '+(e.message||e))}
 };
