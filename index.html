@@ -26,7 +26,7 @@ function closeHfyOtsStatus(){document.getElementById('hfyOtsStatusModal').style.
 document.getElementById('hfyOtsCheckBtn').onclick=checkHfyOtsStatus;
 async function checkHfyOtsStatus(){
  const id=document.getElementById('hfyOtsTempId').value.trim().toUpperCase(),msg=document.getElementById('hfyOtsStatusMsg'),result=document.getElementById('hfyOtsStatusResult'),btn=document.getElementById('hfyOtsCheckBtn');
- if(!/^HFY-TEMP-APP-\d+$/.test(id)){msg.textContent='Please enter a valid temporary ID, for example HFY-TEMP-APP-123.';return}
+ if(!/^(?:HFY-TEMP-APP-\d+|HFY-CIVIL-[A-F0-9]{12})$/.test(id)){msg.textContent='Please enter the Temporary Application ID printed on your OTS proposal.';return}
  btn.disabled=true;btn.textContent='Checking...';msg.textContent='';result.style.display='none';
  try{
   const r=await sb.rpc('hfy_public_get_ots_request',{p_temporary_id:id});if(r.error)throw r.error;
