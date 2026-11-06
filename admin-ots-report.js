@@ -5,6 +5,8 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const money=v=>'₹'+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const tempLoanId=a=>'HFY-TEMP-APP-'+String(a?.id??'').replace(/[^a-zA-Z0-9-]/g,'');
 const loanId=(l,a)=>l?.loan_id||l?.id||tempLoanId(a);
+const cleanPan=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+async function otsApplicationId(a,c){const pan=cleanPan(a?.pan_number||c?.pan_number);if(pan){const r=await db().from('hfy_civil_score_requests').select('temporary_id').eq('pan',pan).order('created_at',{ascending:false}).limit(1).maybeSingle();if(r.error)throw r.error;if(r.data?.temporary_id)return r.data.temporary_id;}return tempLoanId(a);}
 let customers=[],loans=[],apps=[];
 async function load(){
  const sb=db();
@@ -74,7 +76,8 @@ window.hfyOTSPreview=function(){
  const showAmount=!!document.getElementById('hfyOTSShowLoanAmount')?.checked;
  const ids=cl.length?cl.map(l=>loanId(l,a)).join(', '):tempLoanId(a)+' (temporary)';
  const amounts=cl.length?cl.map(l=>showAmount?money(l.loan_amount||0):'HIDDEN').join(', '):'HIDDEN';
- el.innerHTML='<div class="card"><b>'+esc(name)+'</b><br>Application ID: '+esc(a.id)+'<br>Application Status: '+esc(status)+'<br>Customer ID: '+esc(a.customer_id||'Not linked')+'<br>Mobile: '+esc(mobile)+'<br>Loan ID: '+esc(ids)+'<br>Loan Amount: '+esc(amounts)+'</div>';
+ const sharedId=await otsApplicationId(a,c);
+ el.innerHTML='<div class="card"><b>'+esc(name)+'</b><br>Application ID: '+esc(a.id)+'<br>Civil Report / OTS Application ID: '+esc(sharedId)+'<br>Application Status: '+esc(status)+'<br>Customer ID: '+esc(a.customer_id||'Not linked')+'<br>Mobile: '+esc(mobile)+'<br>Loan ID: '+esc(ids)+'<br>Loan Amount: '+esc(amounts)+'</div>';
 };
 window.hfyPrintOTS=async function(){
  const a=apps[Number(document.getElementById('hfyOTSSelect')?.value||0)];
@@ -91,7 +94,7 @@ window.hfyPrintOTS=async function(){
  const status=a.status||'Unknown';
  const today=new Date();
  const date=today.toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
- const otsId=tempLoanId(a);
+ const otsId=await otsApplicationId(a,c);
  const year=today.getFullYear();
  const ref='HFY/OTS/'+String(a.id).replace(/[^a-zA-Z0-9-]/g,'')+'/'+year;
  const loanRows=covered.length?covered.map(l=>'<tr><td>'+esc(loanId(l,a))+'</td><td>'+(showLoanAmount?money(l.loan_amount||0):'HIDDEN')+'</td><td>'+esc(l.loan_status||l.status||'As per records')+'</td></tr>').join(''):'<tr><td>'+esc(tempLoanId(a))+' (Temporary)</td><td>HIDDEN</td><td>No linked loan account found; temporary reference only</td></tr>';
