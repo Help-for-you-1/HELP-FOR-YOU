@@ -3,6 +3,8 @@
 const db=()=>window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_SUPABASE_PUBLISHABLE_KEY);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>'₹'+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const tempLoanId=a=>'HFY-TEMP-APP-'+String(a?.id??'').replace(/[^a-zA-Z0-9-]/g,'');
+const loanId=(l,a)=>l?.loan_id||l?.id||tempLoanId(a);
 let customers=[],loans=[],apps=[];
 async function load(){
  const sb=db();
@@ -31,7 +33,7 @@ window.hfyOpenOTS=async function(){
    const status=a.status||'Unknown';
    return '<option value="'+i+'">Application ID: '+esc(a.id)+' — '+esc(name)+' — '+esc(mobile)+' — '+esc(status)+'</option>';
   }).join('');
-  const html='<p>Select any application. All statuses are included, whether approved or not.</p><label>Application<select id="hfyOTSSelect" onchange="hfyOTSPreview()">'+options+'</select></label><div style="margin-top:12px"><label>Proposed Settlement Amount (₹)<input id="hfyOTSAmount" type="number" min="1" step="0.01" value="6000" style="width:100%;margin-top:5px"></label></div><div id="hfyOTSPreview" style="margin-top:12px"></div><div class="actions"><button class="btn green" type="button" onclick="hfyPrintOTS()">🖨️ Print / Save PDF</button></div>';
+  const html='<p>Select any application. All statuses are included, whether approved or not.</p><label>Application<select id="hfyOTSSelect" onchange="hfyOTSPreview()">'+options+'</select></label><div style="margin-top:12px"><label>Proposed Settlement Amount (₹)<input id="hfyOTSAmount" type="number" min="1" step="0.01" value="6000" style="width:100%;margin-top:5px"></label></div><label style="display:block;margin-top:10px"><input id="hfyOTSShowLoanAmount" type="checkbox" onchange="hfyOTSPreview()"> Show loan amount (hidden by default)</label><div id="hfyOTSPreview" style="margin-top:12px"></div><div class="actions"><button class="btn green" type="button" onclick="hfyPrintOTS()">🖨️ Print / Save PDF</button></div>'
   window.openBox('One Time Settlement (OTS) Proposal',html);
   window.hfyOTSPreview();
  }catch(e){console.error(e);alert('OTS application list load error: '+(e?.message||e))}
@@ -52,7 +54,7 @@ window.hfyPrintOTS=function(){
  if(!a)return alert('Please select an application.');
  if(!Number.isFinite(amount)||amount<=0)return alert('Enter a valid settlement amount.');
  const c=customers.find(x=>String(x.id)===String(a.customer_id))||{};
- const covered=loans.filter(x=>String(x.application_id)===String(a.id)||(a.customer_id!=null&&String(x.customer_id)===String(a.customer_id)));
+ const covered=loans.filter(x=>String(x.application_id)===String(a.id)||(a.customer_id!=null&&String(x.customer_id)===String(a.customer_id)));\n const showLoanAmount=!!document.getElementById('hfyOTSShowLoanAmount')?.checked;
  const name=a.full_name||a.name||c.full_name||c.name||'Customer';
  const parent=c.father_name||c.parent_name||c.guardian_name||a.father_name||a.parent_name||a.guardian_name||'';
  const address=c.full_address||c.address||a.full_address||a.address||[a.house||c.house,a.street||c.street,a.village||c.village,a.post_office||c.post_office,a.district||c.district,a.state||c.state,a.pincode||c.pincode].filter(Boolean).join(', ');
