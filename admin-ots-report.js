@@ -65,7 +65,7 @@ window.hfyOpenOTS=async function(){
   window.hfyOTSPreview();
  }catch(e){console.error(e);alert('OTS application list load error: '+(e?.message||e))}
 };
-window.hfyOTSPreview=function(){
+window.hfyOTSPreview=async function(){
  const a=apps[Number(document.getElementById('hfyOTSSelect')?.value||0)];
  const el=document.getElementById('hfyOTSPreview');if(!a||!el)return;
  const c=customers.find(x=>String(x.id)===String(a.customer_id))||{};
