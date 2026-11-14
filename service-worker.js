@@ -1,4 +1,4 @@
-const CACHE_NAME = 'help-for-you-v8';
+const CACHE_NAME = 'help-for-you-v9';
 const APP_SHELL = [
   '/HELP-FOR-YOU/',
   '/HELP-FOR-YOU/index.html',
