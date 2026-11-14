@@ -13,7 +13,7 @@
 const amount=Number(x.approved_amount||0),requested=Number(x.requested_amount||0),appId=String(x.application_id||''),name=String(x.full_name||'Customer'),created=x.created_at?new Date(x.created_at).toLocaleDateString('en-IN'):'—';
 const safe=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const rupees=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2});
-const html='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HELP FOR YOU | Loan Agreement '+safe(appId)+'</title><style>
+const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HELP FOR YOU | Loan Agreement ${safe(appId)}</title><style>
 *{box-sizing:border-box}html,body{margin:0;padding:0;background:#eef2f7;color:#172033;font-family:Arial,Helvetica,sans-serif;font-size:9.2pt;line-height:1.38}
 .sheet{width:210mm;min-height:297mm;margin:12px auto;background:#fff;padding:13mm 15mm 12mm;position:relative;box-shadow:0 3px 18px #0002;page-break-after:always;break-after:page}
 .sheet:last-of-type{page-break-after:auto;break-after:auto}
@@ -34,10 +34,10 @@ ul{margin:4px 0 7px;padding-left:17px}li{margin:2px 0}
 <h1>LOAN SANCTION &amp; AGREEMENT</h1><p class="sub">Application-linked agreement draft • Complete all marked fields before execution</p>
 <div class="notice"><b>Execution notice:</b> This document records the approved application details currently available. All blank commercial terms must be completed, disclosed to the borrower and accepted by both parties before signing or disbursement. Approval alone is not disbursement.</div>
 <h2>1. Application &amp; borrower information</h2>
-<table class="meta"><tr><td>Application ID</td><td><b>'+safe(appId)+'</b></td></tr><tr><td>Applicant / Borrower name</td><td>'+safe(name)+'</td></tr><tr><td>Application date</td><td>'+safe(created)+'</td></tr><tr><td>Agreement / sanction date</td><td>________________________</td></tr><tr><td>Residential address</td><td>____________________________________________________________</td></tr><tr><td>Mobile / Email</td><td>____________________________________________________________</td></tr><tr><td>Loan purpose</td><td>____________________________________________________________</td></tr></table>
+<table class="meta"><tr><td>Application ID</td><td><b>${safe(appId)}</b></td></tr><tr><td>Applicant / Borrower name</td><td>${safe(name)}</td></tr><tr><td>Application date</td><td>${safe(created)}</td></tr><tr><td>Agreement / sanction date</td><td>________________________</td></tr><tr><td>Residential address</td><td>____________________________________________________________</td></tr><tr><td>Mobile / Email</td><td>____________________________________________________________</td></tr><tr><td>Loan purpose</td><td>____________________________________________________________</td></tr></table>
 <h2>2. Loan sanction details</h2>
 <table><tr><th style="width:42%">Particulars</th><th>Sanctioned / agreed details</th></tr>
-<tr><td>Requested loan amount</td><td>'+rupees(requested)+'</td></tr><tr><td>Approved loan amount (maximum sanctioned principal)</td><td><b>'+rupees(amount)+'</b></td></tr>
+<tr><td>Requested loan amount</td><td>${rupees(requested)}</td></tr><tr><td>Approved loan amount (maximum sanctioned principal)</td><td><b>${rupees(amount)}</b></td></tr>
 <tr><td>Net amount payable to borrower</td><td>₹ ____________________ (after disclosed deductions, if any)</td></tr>
 <tr><td>Interest rate and method</td><td>________ % per annum | ☐ Fixed ☐ Floating | ☐ Flat ☐ Reducing balance</td></tr>
 <tr><td>Loan tenure</td><td>________ months / days | First due date: ______________</td></tr>
@@ -51,11 +51,11 @@ ul{margin:4px 0 7px;padding-left:17px}li{margin:2px 0}
 <table><tr><th style="width:12%">Instalment</th><th style="width:25%">Due date</th><th style="width:22%">Principal</th><th style="width:20%">Interest</th><th>Total due</th></tr>
 <tr><td>1</td><td>____________</td><td>₹ ________</td><td>₹ ________</td><td>₹ ________</td></tr><tr><td>2</td><td>____________</td><td>₹ ________</td><td>₹ ________</td><td>₹ ________</td></tr><tr><td>3</td><td>____________</td><td>₹ ________</td><td>₹ ________</td><td>₹ ________</td></tr><tr><td colspan="5" class="small">Attach a complete repayment schedule if there are more instalments. The borrower must receive a copy.</td></tr></table>
 <div class="callout"><b>Borrower acknowledgement:</b> I have been informed of the approved amount and understand that the interest rate, tenure, instalment amount, fees and repayment dates must be completed and explained before I accept this loan.</div>
-<div class="footer"><span>HELP FOR YOU • Application '+safe(appId)+'</span><span class="page-tag">PAGE 1 OF 2</span></div>
+<div class="footer"><span>HELP FOR YOU • Application ${safe(appId)}</span><span class="page-tag">PAGE 1 OF 2</span></div>
 </section>
 <section class="sheet">
 <div class="brand"><div class="brandname">HELP <span>FOR YOU</span></div><div class="doclabel">LOAN DOCUMENTATION<br>TERMS &amp; CONDITIONS</div></div>
-<h1>TERMS, DECLARATIONS &amp; SIGNATURES</h1><p class="sub">Application ID: <b>'+safe(appId)+'</b> &nbsp; | &nbsp; Borrower: <b>'+safe(name)+'</b></p>
+<h1>TERMS, DECLARATIONS &amp; SIGNATURES</h1><p class="sub">Application ID: <b>${safe(appId)}</b> &nbsp; | &nbsp; Borrower: <b>${safe(name)}</b></p>
 <h2>4. Agreement and disbursement</h2>
 <p>Subject to completion and acceptance of the commercial terms on page 1, HELP FOR YOU (the “Lender”, where legally entitled to lend) agrees to make the sanctioned principal available to the borrower. Disbursement is subject to satisfactory completion of identity, address, bank-account and other required verification, execution of final documents and fulfilment of applicable legal requirements. Approval alone does not confirm disbursement.</p>
 <h2>5. Borrower responsibilities</h2>
@@ -73,11 +73,11 @@ ul{margin:4px 0 7px;padding-left:17px}li{margin:2px 0}
 <div class="notice"><b>Important before signing:</b> Do not sign with blank interest, tenure, EMI, repayment dates, fees or penalty fields. The final terms must be clearly explained, lawful and consistent with the lender's legal authority and applicable lending rules. This template does not itself establish that HELP FOR YOU is a regulated lender or authorise lending.</div>
 <h2>11. Acceptance &amp; signatures</h2>
 <p>By signing below, the parties confirm that the completed financial terms and repayment schedule have been provided, read, understood and accepted, and that each party has received or will receive a signed copy.</p>
-<div class="grid2"><div class="signature"><b>Borrower signature / thumb impression</b><br>Name: '+safe(name)+'<br>Date: ____________________<br>Place: ___________________</div><div class="signature"><b>For HELP FOR YOU (authorised signatory)</b><br>Name &amp; designation: ____________________<br>Date: ____________________<br>Seal: ____________________</div></div>
+<div class="grid2"><div class="signature"><b>Borrower signature / thumb impression</b><br>Name: ${safe(name)}<br>Date: ____________________<br>Place: ___________________</div><div class="signature"><b>For HELP FOR YOU (authorised signatory)</b><br>Name &amp; designation: ____________________<br>Date: ____________________<br>Seal: ____________________</div></div>
 <div class="grid2"><div class="signature"><b>Witness 1</b><br>Name: ____________________<br>Signature: _________________</div><div class="signature"><b>Witness 2</b><br>Name: ____________________<br>Signature: _________________</div></div>
-<p class="small" style="margin-top:12px">Document generated electronically for Application ID '+safe(appId)+'. Generated on: '+safe(new Date().toLocaleDateString('en-IN'))+'. Draft template until all required fields are completed, reviewed for legal compliance and signed by the parties.</p>
-<div class="footer"><span>HELP FOR YOU • Application '+safe(appId)+'</span><span class="page-tag">PAGE 2 OF 2</span></div>
-</section><div class="no-print" style="text-align:center;padding:16px"><button onclick="window.print()" style="background:#0754b8;color:#fff;border:0;border-radius:7px;padding:12px 22px;font-weight:700;cursor:pointer">Print / Save as PDF</button><p style="font:12px Arial;color:#667085">Choose paper size A4 in the print window.</p></div></body></html>';
+<p class="small" style="margin-top:12px">Document generated electronically for Application ID ${safe(appId)}. Generated on: ${safe(new Date().toLocaleDateString('en-IN'))}. Draft template until all required fields are completed, reviewed for legal compliance and signed by the parties.</p>
+<div class="footer"><span>HELP FOR YOU • Application ${safe(appId)}</span><span class="page-tag">PAGE 2 OF 2</span></div>
+</section><div class="no-print" style="text-align:center;padding:16px"><button onclick="window.print()" style="background:#0754b8;color:#fff;border:0;border-radius:7px;padding:12px 22px;font-weight:700;cursor:pointer">Print / Save as PDF</button><p style="font:12px Arial;color:#667085">Choose paper size A4 in the print window.</p></div></body></html>`;
 const blob=new Blob([html],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='HELP-FOR-YOU-Loan-Agreement-'+appId+'.html';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
 }async function checkApplicationStatus(){
 const id=document.getElementById('applicationId').value.trim(),err=document.getElementById('statusError'),out=document.getElementById('statusResult'),btn=document.getElementById('checkStatus');
