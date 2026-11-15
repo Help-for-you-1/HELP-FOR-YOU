@@ -4,7 +4,7 @@ const dbTL=()=>window.supabase.createClient(window.HFY_SUPABASE_URL,window.HFY_S
 const moneyTL=v=>'₹'+Number(v||0).toFixed(2);
 const escTL=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const todayTL=()=>new Date().toISOString().slice(0,10);
-const penaltyTL=e=>{const due=String(e.due_date||'').slice(0,10),t=todayTL();if(!due||due>=t||String(e.status||'').toLowerCase()==='paid')return Number(e.penalty||0);const days=Math.max(0,Math.floor((new Date(t+'T00:00:00')-new Date(due+'T00:00:00'))/86400000));const amount=Number(e.emi_amount||0);return Number((amount*(Math.pow(1.05,days)-1)).toFixed(2));};
+const penaltyTL=e=>{const due=String(e.due_date||'').slice(0,10),t=todayTL();if(!due||due>=t||String(e.status||'').toLowerCase()==='paid')return Number(e.penalty||0);const days=Math.max(0,Math.floor((new Date(t+'T00:00:00')-new Date(due+'T00:00:00'))/86400000));const amount=Number(e.emi_amount||0);const overdue=Number((amount*(Math.pow(1.05,days)-1)).toFixed(2));return Number((overdue+100).toFixed(2));};
 let busyTL=false;
 async function fixTotalLoanOnly(){
  if(busyTL)return;const body=document.getElementById('reRows');if(!body)return;
