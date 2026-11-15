@@ -8,7 +8,9 @@ const money=v=>'₹'+Number(v||0).toFixed(2);
 const today=()=>new Date().toISOString().slice(0,10);
 const overdueCharge=e=>{
  const due=String(e.due_date||'').slice(0,10),t=today(),paid=Number(e.paid_amount||0),emi=Number(e.emi_amount||0);
- return due&&due<t&&paid<emi&&String(e.status||'').toLowerCase()!=='paid'?20:0;
+ if(!due||due>=t||paid>=emi||String(e.status||'').toLowerCase()==='paid')return 0;
+ const days=Math.max(1,Math.floor((new Date(t+'T00:00:00')-new Date(due+'T00:00:00'))/86400000));
+ return Number((100+emi*(Math.pow(1.05,days)-1)).toFixed(2));
 };
 const penalty=e=>Number(e.penalty||0);
 const stat=e=>{
