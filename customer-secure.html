@@ -3,13 +3,17 @@ const c=(()=>{try{return JSON.parse(sessionStorage.getItem('hfy_customer')||'{}'
 const status=String(loan.loan_status||loan.account_status||loan.status||'').toLowerCase();
 if(!['closed','completed','fully_paid','paid_off'].includes(status)){alert('NOC is available only for closed loan accounts.');return}
 const loanId=loan.loan_id||loan.loan_number||loan.loan_no||loan.id||'—',amount=loan.loan_amount??loan.approved_amount??'—',date=new Date().toLocaleDateString('en-IN');
-let customer={...c},application={};
+let customer={...c},application={},detailCustomerId=c.id;
 try{
- const cr=await sb.from('customers').select('full_name,mobile,parent_name,address,city,state,district,pincode').eq('id',c.id).maybeSingle();
+ const lr=await sb.from('loan_accounts').select('customer_id').eq('loan_id',loan.loan_id||loan.loan_number||loan.loan_no).maybeSingle();
+ if(!lr.error&&lr.data?.customer_id)detailCustomerId=lr.data.customer_id;
+}catch(e){}
+try{
+ const cr=await sb.from('customers').select('full_name,mobile,parent_name,address,city,state,district,pincode').eq('id',detailCustomerId).maybeSingle();
  if(!cr.error&&cr.data)customer={...customer,...cr.data};
 }catch(e){}
 try{
- const ar=await sb.from('loan_applications').select('full_name,mobile,parent_name,address,city,state,district,pincode').eq('customer_id',c.id).order('created_at',{ascending:false}).limit(1).maybeSingle();
+ const ar=await sb.from('loan_applications').select('full_name,mobile,parent_name,address,city,state,district,pincode').eq('customer_id',detailCustomerId).order('created_at',{ascending:false}).limit(1).maybeSingle();
  if(!ar.error&&ar.data)application=ar.data;
 }catch(e){}
 const parent=customer.parent_name||customer.father_name||customer.mother_name||customer.father_mother_name||customer.guardian_name||application.parent_name||application.father_name||application.mother_name||'—';
