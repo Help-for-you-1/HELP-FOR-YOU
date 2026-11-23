@@ -36,7 +36,7 @@ function fallbackEditor(i){
  '<label class="full">Admin Remarks<input id="ar" value="'+esc(x.admin_remarks||'')+'"></label>'+
  '<div class="full"><button class="btn blue" onclick="saveApproval('+Number(i)+')">Save Full Form</button><button class="btn gray" onclick="hfySaveApplicationReviewDays('+Number(i)+')">Save Review Days</button><button class="btn green" onclick="hfyApproveApplicationActive('+Number(i)+')">Approve / Active</button><button class="btn red" onclick="reject('+Number(i)+')">Reject</button></div></div>';
  const at=document.getElementById('at'),ast=document.getElementById('ast'),ak=document.getElementById('ak');
- if(at)at.value=String(x.tenure_months||1);if(ast)ast.value=String(x.status||'submitted').toLowerCase();if(ak)ak.value=x.kyc_status||'Pending';
+ if(at)at.value=String(x.tenure_months||1);if(ast){const st=String(x.status||'submitted').trim().toLowerCase();const allowed=['draft','submitted','pending','under_review','waiting','approved','rejected','disbursed','active','completed','cancelled'];ast.value=allowed.includes(st)?st:'submitted';}if(ak)ak.value=x.kyc_status||'Pending';
  document.getElementById('mt').textContent='Full Application — View / Edit';modal.classList.add('on');
 }
 async function view(i){
